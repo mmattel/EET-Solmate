@@ -142,17 +142,6 @@ def main():
 		response = smws_conn.query_solmate('live_values', {}, timer_config, mqtt)
 
 		if response != False:
-			# if the response was false, we just continue
-			# note that 'inject_energy' is an artificial value that derives from:
-			# inject_energy = inject_power [W] * timer_live [s] / 3600 / 1000 (to bring it into kWh)
-			# this simulates a yield per interval that can be shown as statistics in HA,
-			# defined in construct_ha_config_message
-			kwh = float(
-				response['inject_power'] * 
-				timer_config['timer_live'] / 3600 / 1000
-				)
-			# make the response printed in standard and not scientific format with the same number of digits
-			response['inject_energy'] = str(f'{kwh:.14f}')
 			if print_response:
 				print_request_response('live_values', response)
 			if mqtt:

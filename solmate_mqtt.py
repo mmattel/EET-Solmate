@@ -157,8 +157,8 @@ class solmate_mqtt():
 		# https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes
 		# https://www.home-assistant.io/docs/configuration/customizing-devices/#icon
 
-		names = [''] * 11
-		configs = [''] * 11
+		names = [''] * 10
+		configs = [''] * 10
 
 		# note that device_values must be populated
 		device_values = {}
@@ -224,27 +224,6 @@ class solmate_mqtt():
 			"unit_of_measurement": "W",
 			"device": device_values,
 			"icon": "mdi:transmission-tower-import"
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		# note that this is an artificial value that derives from:
-		# inject_power [W] * timer_live [s] / 3600 / 1000 (to bring it into kWh)
-		# this simulates a yield that can be shown as statistics in HA
-		i += 1
-		n = 'inject_energy'
-		name = live_n + n
-		names[i] = '/' + name
-		dictionaries[name] = {
-			"name": n,
-			"device_class": "energy",
-			"state_class": "total_increasing",
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " | round(0) }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"unit_of_measurement": "kWh",
-			"device": device_values,
-			"icon": "mdi:chart-bell-curve-cumulative"
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
