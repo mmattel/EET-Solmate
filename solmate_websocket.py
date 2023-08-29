@@ -199,36 +199,39 @@ class connect_to_solmate:
 			# depending on other exceptions do
 
 			if len(self.err_kwds & set(str(err).replace(',', '').replace("'", '').split())) == len(self.err_kwds):
+				# inexistent route
 				# check if both keywords exist in the error message
 				# in case, stop script if the endpoint does not exists, continue makes no sense
 				# logging of which inexistent route was already done in 'send_api_request'
 				logging('Exiting.', self.console_print)
 				sys.exit()
-			else:
-				# the endpoint existed, but the response was malformed
-				if 'sent 1011 (unexpected error) keepalive ping timeout' in str(err):
-					# the websocket keep alive ping/pong failed (see readme.md), restart program immediately
-					logging('Keep alive ping/pong failed.', self.console_print)
-					self.restart_program(mqtt)
 
-				self.count_before_restart += 1
-				if self.count_before_restart == timer_config['timer_attempt_restart']:
-					# only on _consecutive_ unidentified issues
-					# if waiting the response time did not help, restart after the n-th try 
-					logging('Too many failed consecutive request attempts: ' + str(self.count_before_restart), self.console_print)
-					self.restart_program(mqtt)
-				else:
-					# the false response tells the caller about the incident, it is handled there
-					logging('An unknown but non breaking error happened, continueing.', self.console_print)
-					return False
+			if 'sent 1011 (unexpected error) keepalive ping timeout' in str(err):
+				# the endpoint existed, but the response was malformed
+				# the websocket keep alive ping/pong failed (see readme.md), restart program immediately
+				logging('Keep alive ping/pong failed.', self.console_print)
+				self.restart_program(mqtt)
+
+			self.count_before_restart += 1
+
+			if self.count_before_restart == timer_config['timer_attempt_restart']:
+				# only on _consecutive_ unidentified issues
+				# if waiting the response time did not help, restart after the n-th try 
+				logging('Too many failed consecutive request attempts: ' + str(self.count_before_restart), self.console_print)
+				self.restart_program(mqtt)
+
+			logging('An unknown but non breaking error happened, continueing.', self.console_print)
+			# the false response tells the caller about the incident, it is handled there
+			return False
 
 	def restart_program(self, mqtt=False):
 		# this restarts the program like you would have started it manually again
 		# used for events where it is best to start from scratch
 
 		if mqtt:
-			# gracefully shut down mqtt first if it was configured and do not raise a kbd interrupt
-			mqtt.graceful_shutdown(False)
+			# gracefully shut down mqtt first if it was configured
+			# it will not raise a kbd interrupt as it was programatically initiated 
+			mqtt.graceful_shutdown()
 
 		if self.count_before_restart > 0:
 			# print restart reason if _consescutive_ websocket errors occured

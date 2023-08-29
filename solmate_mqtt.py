@@ -12,6 +12,7 @@ class solmate_mqtt():
 		self.smws = smws
 		self.connect_ok = None
 		self.console_print = console_print
+		self.signal_reason = 0
 
 		self.smws.logging('Initializing the MQTT class.', self.console_print)
 
@@ -41,10 +42,14 @@ class solmate_mqtt():
 		# QOS 2 – Only Once (guaranteed)
 		self.mqtt_qos = 2
 
-		signal.signal(signal.SIGINT, self.signal_handler)
+	def signal_handler_sigint(self, signum, frame):
+		# catch sigint (ctrl-c) and process a graceful shutdown
+		self.signal_reason = 1
+		self.graceful_shutdown()
 
-	# catch ctrl-c
-	def signal_handler(self, signum, frame):
+	def signal_handler_sigterm(self, signum, frame):
+		# catch sigterm (liek from systemd) and process a graceful shutdown
+		self.signal_reason = 2
 		self.graceful_shutdown()
 
 	def init_mqtt_client(self):
@@ -90,7 +95,7 @@ class solmate_mqtt():
 			#print(configs[i])
 			self.mqttclient.publish(self.mqtt_config_topic + names[i] + '/config', payload = configs[i], qos = self.mqtt_qos, retain = True)
 
-	def graceful_shutdown(self, raise_kbd=True):
+	def graceful_shutdown(self):
 		# the 'will_set' is not sent on graceful shutdown by design
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
@@ -100,11 +105,18 @@ class solmate_mqtt():
 			self.mqttclient.disconnect()
 			self.mqttclient.loop_stop()
 			self.connect_ok = False
-			# (re) raise the kbd interrupt to proper exit like via __main__
-			# but NOT when triggerd from the solmate class during a restart as a
-			# restart is NOT a hard interrupt which is triggered via the solmate_class: 'query_solmate'.
-			if raise_kbd:
+			# self.signal_reason defaults to 0, means no signal was used
+			# 1 ... sigint (ctrl-c)
+			# 2 ... sigterm (sudo systemctl stop eet.solmate.service)
+			if self.signal_reason == 1:
+				# (re) raise the kbd interrupt to proper exit like via __main__
+				# but NOT when triggerd from the solmate class during a restart, as a restart
+				# is NOT a hard interrupt which is triggered via the solmate_class: 'query_solmate'.
 				raise KeyboardInterrupt
+			if self.signal_reason == 2:
+				# the program was politely asked to terminate, we log and grant that request.
+				self.smws.logging('\rTerminated on request.', self.console_print)
+				sys.exit()
 
 	def on_connect(self, client, userdata, flags, rc):
 		# http://www.steves-internet-guide.com/mqtt-python-callbacks/
