@@ -12,12 +12,13 @@ def process_env(smws):
 		# use an env file if given as argument
 		if os.path.isfile(sys.argv[1]) == True:
 			env_file = sys.argv[1]
+			smws.logging('Using env file: ' + str(env_file))
 		else:
 			smws.logging('Envvar file: ' + str(sys.argv[1]) + ' as argument not found, exiting.', True)
 			sys.exit()
 	else:
 		if os.path.exists(env_file):
-			# log if an .env file is present
+			# no envvar file as argument, but an .env file is present in the same directory
 			smws.logging('Using env file: ' + str(env_file))
 		else:
 			# log that envars are expected otherwise

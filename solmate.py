@@ -11,8 +11,8 @@ import solmate_env as env
 import solmate_mqtt as smmqtt
 import solmate_websocket as smws
 
-# version 1.0
-# 2023.08.27
+# version 1.1
+# 2023.08.29
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -44,12 +44,6 @@ def query_once_a_day(smws_conn, route, data, timer_config, mqtt, smws, print_res
 
 def main():
 
-	# catch ctrl-c
-	# the signal handler must be here because we need to access mqtt
-	# it itself raises a KeyboardInterrupt to make a shutdown here too
-	def signal_handler(signum, frame):
-		mqtt.graceful_shutdown()
-
 	# log timer calls. set to false if all works and you just loop thru the live values
 	# to avoid polluting syslog with data  
 	add_log = True
@@ -62,7 +56,7 @@ def main():
 	console_print = True
 
 	# globally enable/disable mqtt, makes it easier for testing
-	enable_mqtt = True
+	use_mqtt = True
 
 	# initialize colors for output, needed for Windows
 	if sys.platform == 'win32':
@@ -95,7 +89,9 @@ def main():
 	else:
 		online = False
 
-	# log and continue, or restart
+	# on startup, log and continue, or restart
+	# note that if during processing the solmate goes offline, the connection closes
+	# and with the automatic restart procedure, we endup in this questionaire here again
 	if online:
 		# solmate is online
 		smws.logging('SolMate is online.', console_print)
@@ -103,16 +99,23 @@ def main():
 		# solmate is not online
 		smws.logging('Your SolMate is offline.', console_print)
 		# wait until the next try, but do it with a full restart
-		smws.timer_wait(timer_config, 'timer_offline', console_print, add_log)
+		smws.timer_wait(timer_config, 'timer_offline', console_print, True)
 		smws_conn.restart_program()
 
-	if enable_mqtt:
+	if use_mqtt:
 		# initialize and start mqtt
 		mqtt = smmqtt.solmate_mqtt(mqtt_config, smws, console_print)
 		mqtt.init_mqtt_client()
-		# note that doing a signal handling for ctrl-c must be done after initializing mqtt
-		# else the handler cant gracefully shutdown
-		signal.signal(signal.SIGINT, signal_handler)
+		# note that signal handling must be done after initializing mqtt
+		# else the handler cant gracefully shutdown mqtt.
+		# use os.kill(os.getpid(), signal.SIGTERM) where necessary to simulate e.g. a sigterm
+		# signal handlers are always executed in the main Python thread of
+		# the main interpreter, even if the signal was received in another thread.
+		# if not otherwise defined, it itself raises a KeyboardInterrupt to make a shutdown here too
+		signal.signal(signal.SIGINT, mqtt.signal_handler_sigint)
+		# ctrl-c
+		signal.signal(signal.SIGTERM, mqtt.signal_handler_sigterm)
+		# sudo systemctl stop eet.solmate.service
 	else:
 		mqtt = False
 
@@ -151,6 +154,7 @@ def main():
 		smws.timer_wait(timer_config, 'timer_live', console_print, False)
 
 	if mqtt:
+		# make a graceful shutdown, but do not raise a signal, the program terminated "normally" 
 		mqtt.graceful_shutdown()
 
 if __name__ == '__main__':

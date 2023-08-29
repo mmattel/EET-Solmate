@@ -4,6 +4,9 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
 
 ## General Info
 
+For ease of handling, you can clone this repo locally using `git clone`. This makes updating to a newer release
+more easy. See the git documentation for details.
+
 Check that all required modules are installed, use `check_reqirements.py` to see which are missing.
 You may need to cycle thru until all requirements are satisified.
 
@@ -25,7 +28,7 @@ Define `add_log` as required to add any log output for default timers when using
 Can be set to `False` when running as deamon like with systemd.
 Note that `live_values` do not need any waiting time to be logged...
 
-Define `enable_mqtt` to globally enable/disable mqtt, makes it easier for testing.
+Define `use_mqtt` to globally enable/disable mqtt, makes it easier for testing.
 
 Define `print_response` to enable/disable console print of the response. Helpful when testing.
 
@@ -108,6 +111,8 @@ This reads config data from the `.env` file or a file defined as cmd line argume
 You can also use envvars instead.
 
 ### Necessary Data in the '.env' File
+
+As a starting point, make a copy of the `.env-sample` file, name it `.env` and adapt it accordingly.
 
 ```
 # solmate config
@@ -193,6 +198,35 @@ timer_attempt_restart=3
 				print_request_response(route, response)
 			# and wait for the next round
 			smc.timer_wait(timer_config, 'timer_live', False)
+```
+
+## Run as systemd Service (Linux Only)
+
+When running the Python script on a Linux system using `systemd`, you can automate it on startup.
+
+1. To create a service to autostart the script at boot, copy the content of the example service  
+configuration from below into the editor when called in step 2.
+2. `sudo systemctl edit --force --full eet.solmate`
+3. Edit the path to your script path and for the .env file.  
+Also make sure to replace `<your-user>` with the account from which this script should run.
+4. Finalize with the following commands:  
+`sudo systemctl daemon-reload`  
+`sudo systemctl enable --now eet.solmate.service`  
+`sudo systemctl status eet.solmate.service` 
+
+```
+[Unit]
+Description=Python based EET-Solmate to MQTT
+After=multi-user.target
+
+[Service]
+User=<your-user>
+Restart=on-failure
+Type=idle
+ExecStart=/usr/bin/python3 /home/<your-user>/<your-path>/solmate.py </home/<your-user>/<your-path>/.env>
+
+[Install]
+WantedBy=multi-user.target
 ```
 
 ## Homeassistant
