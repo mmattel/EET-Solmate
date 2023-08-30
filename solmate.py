@@ -11,8 +11,8 @@ import solmate_env as env
 import solmate_mqtt as smmqtt
 import solmate_websocket as smws
 
-# version 1.1
-# 2023.08.29
+# version 1.1.1
+# 2023.08.30
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json

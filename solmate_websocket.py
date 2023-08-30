@@ -234,8 +234,11 @@ class connect_to_solmate:
 			mqtt.graceful_shutdown()
 
 		if self.count_before_restart > 0:
-			# print restart reason if _consescutive_ websocket errors occured
+			# log restart reason if _consescutive_ websocket errors occured
 			logging('Restarting program due to ' + str(self.count_before_restart) + ' consecutive unprocessable WS conditions.', self.console_print)
+		else:
+			# log that we are restarting without describing the cause
+			logging('Restarting program.', self.console_print)
 
 		sys.stdout.flush()
 		os.execv(sys.executable, ['python'] + sys.argv)
