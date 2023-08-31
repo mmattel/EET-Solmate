@@ -12,7 +12,7 @@ import solmate_mqtt as smmqtt
 import solmate_websocket as smws
 
 # version 1.1.1
-# 2023.08.30
+# 2023.08.31
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -79,7 +79,9 @@ def main():
 	except Exception as err:
 		smws.logging('Failed creating connection to websocket class.', console_print)
 		smws.logging(str(err), console_print)
-		sys.exit()
+		# wait until the next try, but do it with a full restart
+		smws.timer_wait(timer_config, 'timer_offline', console_print, True)
+		smws_conn.restart_program()
 
 	# determine if the system is online
 	if 'online' in response:

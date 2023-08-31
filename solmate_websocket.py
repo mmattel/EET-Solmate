@@ -58,8 +58,8 @@ class connect_to_solmate:
 			# see the readme.md file for a possible reason
 			logging('Websocket is connected to: ' + self.server_uri, self.console_print)
 		except Exception as err:
-			logging('Websockets: ' + str(self.server_uri), self.console_print)
-			logging('Websockets: ' + str(err), self.console_print)
+			logging('Websockets error: ' + str(self.server_uri), self.console_print)
+			logging('Websockets error: ' + str(err), self.console_print)
 			raise
 
 	async def send_api_request(self, data):
