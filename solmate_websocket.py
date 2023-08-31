@@ -59,7 +59,7 @@ class connect_to_solmate:
 			logging('Websocket is connected to: ' + self.server_uri, self.console_print)
 		except Exception as err:
 			logging('Websockets error: ' + str(self.server_uri), self.console_print)
-			logging('Websockets error: ' + str(err), self.console_print)
+			logging('Websockets error: ' + str(err) or 'Empty error string returned.', self.console_print)
 			raise
 
 	async def send_api_request(self, data):
@@ -92,11 +92,11 @@ class connect_to_solmate:
 		elif 'error' in response:
 			# contains the original websocket error data
 			err = 'Response: ' + str(response['error'])
-			logging(err, self.console_print)
+			logging(str(err), self.console_print)
 			raise Exception(err)
 		else:
 			err = 'The response did not contain any useful data.'
-			logging(err, self.console_print)
+			logging(str(err), self.console_print)
 			raise Exception(err)
 
 	def authenticate(self):

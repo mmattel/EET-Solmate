@@ -77,8 +77,7 @@ def main():
 		smws_conn = smws.connect_to_solmate(solmate_config, console_print)
 		response = smws_conn.authenticate()
 	except Exception as err:
-		smws.logging('Failed creating connection to websocket class.', console_print)
-		smws.logging(str(err), console_print)
+		smws.logging('Failed creating connection/authentication to websocket class.', console_print)
 		# wait until the next try, but do it with a full restart
 		smws.timer_wait(timer_config, 'timer_offline', console_print, True)
 		smws_conn.restart_program()

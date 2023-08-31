@@ -16,7 +16,7 @@ You may need to cycle thru until all requirements are satisified.
 
 ## solmate.py
 
-This is the main program that imports all other components. It also has a proper CTRL-C handling.
+This is the main program that imports all other components. It also has a proper CTRL-C and SIGTERM handling.
 
 To parametrize, you either can use:
 
