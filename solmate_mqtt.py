@@ -62,7 +62,7 @@ class solmate_mqtt():
 		#self.mqttclient.on_publish = self.on_publish	  # uncomment for testing purposes
 		#self.mqttclient.on_message = self.on_message	  # uncomment for testing purposes		
 		self.mqttclient.username_pw_set(self.mqtt_username, self.mqtt_password)
-		self.mqttclient.will_set(self.mqtt_availability_topic, payload = "offline", qos = 0, retain = True)
+		self.mqttclient.will_set(self.mqtt_availability_topic, payload = 'offline', qos = 0, retain = True)
 
 		# server/port issues are handled here
 		try:
@@ -100,7 +100,7 @@ class solmate_mqtt():
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
 			self.smws.logging('\rShutting down MQTT gracefully.', self.console_print)
-			publish_result = self.mqttclient.publish(self.mqtt_availability_topic, payload = "offline", qos = self.mqtt_qos, retain = True)
+			publish_result = self.mqttclient.publish(self.mqtt_availability_topic, payload = 'offline', qos = self.mqtt_qos, retain = True)
 			publish_result.wait_for_publish() 
 			self.mqttclient.disconnect()
 			self.mqttclient.loop_stop()
@@ -122,23 +122,23 @@ class solmate_mqtt():
 		# http://www.steves-internet-guide.com/mqtt-python-callbacks/
 		# online/offline needs to be exactly written like that for proper recognition in HA
 		if rc == 0:
-			client.publish(self.mqtt_availability_topic, payload = "online", qos = self.mqtt_qos, retain = True)
+			client.publish(self.mqtt_availability_topic, payload = 'online', qos = self.mqtt_qos, retain = True)
 			self.connect_ok = True
 			self.smws.logging('MQTT is connected and running.', self.console_print)
 		else:
 			switcher = {
-				1: "incorrect protocol version",
-				2: "invalid client identifier",
-				3: "server unavailable",
-				4: "bad username or password",
-				5: "not authorised",
+				1: 'incorrect protocol version',
+				2: 'invalid client identifier',
+				3: 'server unavailable',
+				4: 'bad username or password',
+				5: 'not authorised',
 			}
 			self.connect_ok = False
-			self.smws.logging("MQTT connection refused - " + switcher.get(rc, "unknown response"), self.console_print)
+			self.smws.logging('MQTT connection refused - ' + switcher.get(rc, 'unknown response'), self.console_print)
 			self.mqttclient.loop_stop()
 
 	def on_publish(self, client, userdata, message):
-		print(f"MQTT messages published: {message}")
+		print(f'MQTT messages published: {message}')
 
 	def on_message(self, client, userdata, message):
 		# triggered on published message on subscription
@@ -174,10 +174,10 @@ class solmate_mqtt():
 
 		# note that device_values must be populated
 		device_values = {}
-		device_values["identifiers"] = ["eet_solmate"]
-		device_values["name"] = "SOLMATE"
-		device_values["model"] = "SOLMATE G"
-		device_values["manufacturer"] = "EET Energy"
+		device_values['identifiers'] = ['eet_solmate']
+		device_values['name'] = 'SOLMATE'
+		device_values['model'] = 'SOLMATE G'
+		device_values['manufacturer'] = 'EET Energy'
 
 		live = '/live'
 		info = '/info'
@@ -190,16 +190,16 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"friendly_name": name,
+			'name': n,
+			'friendly_name': name,
 			# give the entiy a better identifyable name for the UI (timestamp is multiple present)
 			# dont use a timestamp class, we manually generate it and manually define the icon
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " | as_timestamp() | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
-			"availability_topic": self.mqtt_availability_topic,
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"device": device_values,
-			"icon": "mdi:progress-clock"
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + " | as_timestamp() | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
+			'availability_topic': self.mqtt_availability_topic,
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'device': device_values,
+			'icon': 'mdi:progress-clock'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 		# json_formatted_str = json.dumps(dictionaries[name], indent=2, ensure_ascii = False)
@@ -210,15 +210,15 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"device_class": "power",
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " | round(1) }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"unit_of_measurement": "W",
-			"device": device_values,
-			"icon": "mdi:solar-power-variant-outline"
+			'name': n,
+			'device_class': 'power',
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + ' | float(0) | round(1) }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'unit_of_measurement': 'W',
+			'device': device_values,
+			'icon': 'mdi:solar-power-variant-outline'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -227,15 +227,15 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"device_class": "power",
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " | round(1) }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"unit_of_measurement": "W",
-			"device": device_values,
-			"icon": "mdi:transmission-tower-import"
+			'name': n,
+			'device_class': 'power',
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + ' | float(0) | round(1) }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'unit_of_measurement': 'W',
+			'device': device_values,
+			'icon': 'mdi:transmission-tower-import'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -244,15 +244,15 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"device_class": "power",
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " | round(1) }}",
-			"unique_id":self. mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"unit_of_measurement": "W",
-			"device": device_values,
-			"icon": "mdi:home-battery-outline"
+			'name': n,
+			'device_class': 'power',
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + ' | float(0) | round(1) }}',
+			'unique_id':self. mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'unit_of_measurement': 'W',
+			'device': device_values,
+			'icon': 'mdi:home-battery-outline'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -261,14 +261,14 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " * 100" + " | round(1) }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"unit_of_measurement": "%",
-			"device": device_values,
-			"icon": "mdi:battery-high"
+			'name': n,
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + ' | float(0) | * 100 | round(1) }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'unit_of_measurement': '%',
+			'device': device_values,
+			'icon': 'mdi:battery-high'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -277,14 +277,14 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"device_class": "temperature",
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " | round(1)}}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"unit_of_measurement": "°C",
-			"device": device_values
+			'name': n,
+			'device_class': 'temperature',
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + ' | float(0) | round(1) }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'unit_of_measurement': '°C',
+			'device': device_values
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -293,14 +293,14 @@ class solmate_mqtt():
 		name = live_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"device_class": "current",
-			"state_topic": self.mqtt_state_topic + live,
-			"value_template": "{{ value_json." + n + " }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"device": device_values,
-			"unit_of_measurement": "A"
+			'name': n,
+			'device_class': 'current',
+			'state_topic': self.mqtt_state_topic + live,
+			'value_template': '{{ value_json.' + n + ' | float(0) | round(2) }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'device': device_values,
+			'unit_of_measurement': 'A'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -309,14 +309,14 @@ class solmate_mqtt():
 		name = info_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
+			'name': n,
 			# no device class here as it is a string
-			"state_topic": self.mqtt_state_topic + info,
-			"value_template": "{{ value_json." + n + " | version }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"device": device_values,
-			"icon": "mdi:text-box-outline"
+			'state_topic': self.mqtt_state_topic + info,
+			'value_template': '{{ value_json.' + n + ' | version }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'device': device_values,
+			'icon': 'mdi:text-box-outline'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -325,14 +325,14 @@ class solmate_mqtt():
 		name = info_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
+			'name': n,
 			# no device class here as it is a string
-			"state_topic": self.mqtt_state_topic + info,
-			"value_template": "{{ value_json." + n + " }}",
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"availability_topic": self.mqtt_availability_topic,
-			"device": device_values,
-			"icon": "mdi:ip-outline"
+			'state_topic': self.mqtt_state_topic + info,
+			'value_template': '{{ value_json.' + n + ' }}',
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'availability_topic': self.mqtt_availability_topic,
+			'device': device_values,
+			'icon': 'mdi:ip-outline'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 
@@ -341,16 +341,16 @@ class solmate_mqtt():
 		name = info_n + n
 		names[i] = '/' + name
 		dictionaries[name] = {
-			"name": n,
-			"friendly_name": name,
+			'name': n,
+			'friendly_name': name,
 			# give the entiy a better identifyable name for the UI (timestamp is multiple present)
 			# dont use a timestamp class, we manually generate it and manually define the icon
-			"state_topic": self.mqtt_state_topic + info,
-			"value_template": "{{ value_json." + n + " | as_timestamp() | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
-			"availability_topic": self.mqtt_availability_topic,
-			"unique_id": self.mqtt_topic + "_sensor_" + name,
-			"device": device_values,
-			"icon": "mdi:clock-time-ten"
+			'state_topic': self.mqtt_state_topic + info,
+			'value_template': '{{ value_json.' + n + " | as_timestamp() | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
+			'availability_topic': self.mqtt_availability_topic,
+			'unique_id': self.mqtt_topic + '_sensor_' + name,
+			'device': device_values,
+			'icon': 'mdi:clock-time-ten'
 		}
 		configs[i] = json.dumps(dictionaries[name])
 

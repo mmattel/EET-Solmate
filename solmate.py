@@ -11,8 +11,8 @@ import solmate_env as env
 import solmate_mqtt as smmqtt
 import solmate_websocket as smws
 
-# version 1.1.1
-# 2023.08.31
+# version 1.1.2
+# 2023.09.01
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -46,7 +46,7 @@ def main():
 
 	# log timer calls. set to false if all works and you just loop thru the live values
 	# to avoid polluting syslog with data  
-	add_log = True
+	add_log = False
 
 	# enable/disable printing _response_ data to the console, useful for testing
 	print_response = False
@@ -150,6 +150,9 @@ def main():
 				print_request_response('live_values', response)
 			if mqtt:
 				mqtt.send_update_message(response, 'live')
+
+		# check if there is a pending job due
+		schedule.run_pending()
 
 		# wait for the next round
 		smws.timer_wait(timer_config, 'timer_live', console_print, False)
