@@ -263,7 +263,7 @@ class solmate_mqtt():
 		dictionaries[name] = {
 			'name': n,
 			'state_topic': self.mqtt_state_topic + live,
-			'value_template': '{{ value_json.' + n + ' | float(0) | * 100 | round(1) }}',
+			'value_template': '{{ value_json.' + n + ' | float(0) * 100 | round(1) }}',
 			'unique_id': self.mqtt_topic + '_sensor_' + name,
 			'availability_topic': self.mqtt_availability_topic,
 			'unit_of_measurement': '%',
