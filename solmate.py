@@ -85,7 +85,7 @@ def main():
 	# determine if the system is online
 	if 'online' in response:
 		online = response['online']
-	elif solmate_config['eet_network'] == 'local':
+	elif 'sol.eet.energy' in solmate_config['eet_server_uri']:
 		online = True
 	else:
 		online = False

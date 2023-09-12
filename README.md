@@ -115,16 +115,22 @@ You can also use envvars instead.
 As a starting point, make a copy of the `.env-sample` file, name it `.env` and adapt it accordingly.
 
 ```
+# mqtt config
+mqtt_server=<mqtt-address>
+mqtt_port=1883
+mqtt_username=<mqtt-user>
+mqtt_password=<mqtt-password>
+mqtt_client_id=solmate_mqtt
+mqtt_topic=solmate
+mqtt_prefix=eet
+mqtt_ha=homeassistant
+
 # solmate config
-# get the local domain from your network setup (router, dhcp etc.)
-eet_server_uri="ws://sun2plug.<your-domain>:9124/"
+# get the local address from your dhcp server
+# note that local access is good for testing, but does currently not seem to be stable
+#eet_server_uri="ws://sun2plug.<your-domain>:9124/"
 
-# 'eet_network' is only necessary when accessing from the local network, in combination with the URI above
-# when the solmate is local, it does not respond with 'online' compared to server access. as long the
-# response does not change, we need that workaround. 
-eet_network='local'
-
-# #eet_server_uri="wss://sol.eet.energy:9124/"
+eet_server_uri="wss://sol.eet.energy:9124/"
 
 eet_serial_number="<solmate-serial-number>"
 eet_password="<solmate-password>"
