@@ -5,7 +5,7 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
 ## General Info
 
 For ease of handling, you can clone this repo locally using `git clone`. This makes updating to a newer release
-more easy. See the git documentation for details.
+more easy. See the git clone documentation for details.
 
 Check that all required modules are installed, use `check_reqirements.py` to see which are missing.
 You may need to cycle thru until all requirements are satisified.
@@ -13,6 +13,8 @@ You may need to cycle thru until all requirements are satisified.
 **IMPORTANT**: You need one Python script configured per solmate installed (if you have more than one).
 
 **IMPORTANT**: For the time being, you can only send data to MQTT but not recieve data like to configure SolMate.
+
+**IMPORTANT**: Compared to the [solmate SDK](https://github.com/eet-energy/solmate-sdk), the code provided has tons of [error handling](#error-handling) that will make the script run continuosly even if "strange" stuff occurs.
 
 ## solmate.py
 
@@ -24,18 +26,18 @@ To parametrize, you either can use:
 2. an own file `python solmate.py <your-env-file>`, or
 3. envvars defined via the OS or e.g. docker
 
-Define `add_log` as required to add any log output for default timers when using loops.
-Can be set to `False` when running as deamon like with systemd.
-Note that `live_values` do not need any waiting time to be logged...
+Following parameters can be set via the code only and are intended for either development or testing.
 
-Define `use_mqtt` to globally enable/disable mqtt, makes it easier for testing.
+* Define `add_log` as required to add any log output for default timers when using loops. Can be set to `False` when running as deamon like with systemd. Note that `live_values` do not need any waiting time to be logged...
 
-Define `print_response` to enable/disable console print of the response. Helpful when testing.
+* Define `use_mqtt` to globally enable/disable mqtt, makes it easier for testing.
 
-Defint `console_print` to enable logging also to console, syslog is always used.
+* Define `print_response` to enable/disable console print of the response. Helpful when testing.
 
-There is a job scheduler for jobs (currently only the 'get_solmate_info' is defined) that only need
-to run once a day as the response changes rarely, but can like the solmates sw-version. The job is
+* Defint `console_print` to enable logging also to console, syslog is always used.
+
+There is a job scheduler for jobs (currently only the `get_solmate_info` is defined) that only need
+to run once a day as the response changes rarely, but can, like the solmates sw-version. The job is
 forced to run at startup and then on the defined interval.
 
 On successful startup, following messages are logged (exampe):
@@ -56,7 +58,7 @@ Update MQTT topics for Homeassistant.
 Once a day queries called by scheduler.
 ```
 
-### Possible Routes
+### Known Routes
 
 All routes have as data {} (= no data) except where mentioned
 
@@ -65,12 +67,12 @@ All routes have as data {} (= no data) except where mentioned
 3. `live_values`
 4. `get_user_settings`
 5. `get_grid_mode`
-6. `get_injection_settings`	 
-note that you must provide proper data as attribute, see get_api_info output for more details
+6. `get_injection_settings`	  
+note that you must provide proper data as attribute, see `get_api_info` output for more details
 7. `logs`  
-note that you must provide proper data as attribute, see get_api_info output for more details
+note that you must provide proper data as attribute, see `get_api_info` output for more details
 
-## solmate_websocket.py
+## `solmate_websocket.py`
 
 1. Initialize with `smc_conn = smc.connect_to_solmate(solmate_config, console_print)`.
 2. `smc_conn.authenticate()` with the array configuring solmate from env file or envvar as parameter.  
@@ -86,7 +88,12 @@ the timer_config defines waiting times for the next query in case of coverable e
 `timer_wait` waits the given time and logs, in case enabled, that it is waiting for the particular time.
 `restart_program` when called, restarts the script like from cmd line. Necessary for unrecoverable errors.
 
-### Error Handling
+## `solmate_mqtt.py`
+
+Without going into much details, to make EET Solmate auto discoverable for Home Assistant, the subroutine `construct_ha_config_message` is called. Do intensively testing when changing stuff here. I recommend using [mqtt Explorer](https://github.com/mmattel/Raspberry-Pi-Setup/tree/main#steps) to monitor the message flow.
+
+
+## Error Handling
 
 Errors are handled on best effort and in **most cases** handed over to the caller to decide.
 
@@ -94,18 +101,20 @@ Errors are handled on best effort and in **most cases** handed over to the calle
 2. `query_solmate` --> `inexistent route` --> `solmate_websocket` --> `sys.exit()`
 3. Missing or wrong `data` in request --> `query_solmate` --> `send_api_request` --> `ConnectionClosedOK` -->  
 watch the log, it will continue after the waiting time. Can't be covered due to missing details in the response!
-4. When the `response` returned `False` --> `query_solmate` --> just wait the `timer_response` and continue
+4. When the `response` returned `False` --> `query_solmate` --> just wait the `timer_response` and continue.
 
 You will see moste likely regular automatically program restarts due to a websocket error raised:
 `sent 1011 (unexpected error) keepalive ping timeout; no close frame received`
 See [What does ConnectionClosedError: sent 1011 (unexpected error)](https://websockets.readthedocs.io/en/stable/faq/common.html#what-does-connectionclosederror-sent-1011-unexpected-error-keepalive-ping-timeout-no-close-frame-received-mean)
-for deatils. Though the program covers the error and restarts completely, it has an impact on configuration.
+for details. The program covers the error and restarts completely.
+
+For those who are interested in the details: There is an impact on the configuration in the websocket code.
 The websocket `ping_timeout` which defaults to 20s is lower than `timer_live` which defaults to 30s.
 It is maybe not a good idea to have them on the same value and a ping should be more frequent than
-regular recurring requests. For a long term solution, the server should handle ping/pong requests properly.
+regular recurring requests. For a long term solution, the server (both variants of `eet_server_uri` in the config, this is on the EET side) should handle ping/pong requests properly. Currently they are not that stable.
 Also see the envvar `timer_response_restart` in the `.env` description below for additional details.
 
-## solmate_env.py
+## `solmate_env.py`
 
 This reads config data from the `.env` file or a file defined as cmd line argument.
 You can also use envvars instead.
@@ -156,6 +165,8 @@ timer_attempt_restart=3
 ```
 
 ## Example Calls
+
+These are examples if you want to adapt the code on your own.
 
 ```
 	# example data when using the logs route
@@ -235,10 +246,6 @@ ExecStart=/usr/bin/python3 /home/<your-user>/<your-path>/solmate.py </home/<your
 WantedBy=multi-user.target
 ```
 
-## Homeassistant
+## Homeassistant Energy Dashboard
 
-[power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus)
-
-[energy-flow-card-plus](https://github.com/flixlix/energy-flow-card-plus)
-
-[How to integrate energy](https://www.home-assistant.io/integrations/integration/#energy)
+At the time of writing, the HA energy dashboard has no capability to properly display ANY system where the battery is the central point and only carged by the solar panel respectively the source of injecting energy. This is not EET specific. A [feature request](https://community.home-assistant.io/t/energy-flow-diagram-electric-power-update-needed/619621) has been filed.
