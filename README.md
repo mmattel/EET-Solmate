@@ -14,7 +14,10 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
    * [Error Handling](#error-handling)
    * [Example Calls](#example-calls)
    * [Run as systemd Service (Linux Only)](#run-as-systemd-service-linux-only)
-   * [Homeassistant Energy Dashboard](#homeassistant-energy-dashboard)
+   * [Home Assistant](#home-assistant)
+      * [MQTT Sensors](#mqtt-sensors)
+      * [Energy Dashboard](#energy-dashboard)
+      * [Template Sensors](#template-sensors)
 
 ## General Info
 
@@ -277,6 +280,45 @@ ExecStart=/usr/bin/python3 /home/<your-user>/<your-path>/solmate.py </home/<your
 WantedBy=multi-user.target
 ```
 
-## Homeassistant Energy Dashboard
+## Home Assistant
 
-At the time of writing, the HA energy dashboard has no capability to properly display ANY system where the battery is the central point and only carged by the solar panel respectively the source of injecting energy. This is not EET specific. A [feature request](https://community.home-assistant.io/t/energy-flow-diagram-electric-power-update-needed/619621) has been filed.
+### MQTT Sensors
+
+When everything went fine, you will see the solmate as device in MQTT. Note that you will see two `timestamps` by intention. The differentiate the following:
+
+* The first timestamp is updated once every `timer_live` query interval.
+* The other timestamp is updated once every nightly scheduled query at 23:45 getting the IP address and SW version only. As these values update quite rarely, there is no need to do that more often. 
+
+Note that both timers are updated on restart. Knowing this you can see if there was an out of schedule program restart due to error handling if the second timer is not at the scheduled interval.
+
+### Energy Dashboard
+
+At the time of writing, the HA energy dashboard has no capability to properly display ANY system where the battery is the central point and only carged by the solar panel respectively is the source of injecting energy. This is not EET specific. A [feature request](https://community.home-assistant.io/t/energy-flow-diagram-electric-power-update-needed/619621) has been filed.
+
+### Template Sensors
+
+These are template examples you can use for further processing when you need to split a single +/- value into variables that can contain only a positive value or zero.
+   
+```
+  # virtual EET Solmate sensors
+  - sensor:
+    # battery consumption
+    # negative values(battery_flow) = charging or 0
+    - name: 'Solmate faked Battery Consumption'
+      unique_id: 'solmate_faked_battery_consumption'
+      unit_of_measurement: 'W'
+      device_class: 'power'
+      icon: 'mdi:battery-charging-40'
+      state: >
+        {{ -([ 0, states('sensor.solmate_battery_flow') | float(0) ] | min) }}
+
+    # battery production
+    # production = positive values(inject_power) or 0
+    - name: 'Solmate faked Battery Production'
+      unique_id: 'solmate_faked_battery_production'
+      unit_of_measurement: 'W'
+      device_class: 'power'
+      icon: 'mdi:home-battery-outline'
+      state: >
+        {{ ([ 0, states('sensor.solmate_inject_power') | float(0) ] | max) }}
+```
