@@ -68,7 +68,7 @@ Following parameters can be set via the code only and are intended for either de
 
 * Define `print_response` to enable/disable console print of the response. Helpful when testing.
 
-* Defint `console_print` to enable logging also to console, syslog is always used.
+* Define `console_print` to enable logging also to console, syslog is always used.
 
 There is a job scheduler for jobs (currently only the `get_solmate_info` is defined) that only need
 to run once a day as the response changes rarely, but can, like the solmates sw-version. The job is
