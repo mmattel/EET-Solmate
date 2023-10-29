@@ -21,11 +21,14 @@ all_modules = [x for x in help_out if not x.startswith('_')]
 with open('requirements.txt', 'r') as f:
 	requirements = f.read().split('\n')
 
-# remove empty
-requirements = ' '.join(requirements).split()
+# remove empty lines even they contain multiple blanks
+requirements[:] = [x for x in requirements if len(x.strip())!=0]
+
+# remove white spaces at the beginning and end of the strings
+requirements[:] = [x.strip() for x in requirements]
 
 # remove all items starting with '#'
-requirements = [x for x in requirements if not x.startswith('#')]
+requirements[:] = [x for x in requirements if not x.startswith('#')]
 
 # uncomment for testing
 #print(requirements)
@@ -33,10 +36,13 @@ requirements = [x for x in requirements if not x.startswith('#')]
 
 # get all modules that are already installed and do not need to be in requirements
 match = list(set(requirements).intersection(all_modules))
+match.sort()
 print()
-print('The following modules can be commented in requirements.txt because already available:')
+print('The following modules can be commented in requirements.txt because they are already available:')
 print()
 print(match)
 print()
 print('When done, call: python -m pip install -r requirements.txt')
+print()
+print('If the call returns an empty array like [], all module requirements are met.')
 print()
