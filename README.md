@@ -2,21 +2,55 @@
 
 A Python script to read data from a EET SolMate and send it to a MQTT broker for the use with Homeassistant.
 
+   * [General Info](#general-info)
+   * [Preperation and Quick Start](#preperation-and-quick-start)
+   * [Script Components](#script-components)
+      * [solmate.py](#solmatepy)
+         * [Known Routes](#known-routes)
+      * [solmate_websocket.py](#solmate_websocketpy)
+      * [solmate_mqtt.py](#solmate_mqttpy)
+      * [solmate_env.py](#solmate_envpy)
+         * [Necessary Data in the '.env' File](#necessary-data-in-the-env-file)
+   * [Error Handling](#error-handling)
+   * [Example Calls](#example-calls)
+   * [Run as systemd Service (Linux Only)](#run-as-systemd-service-linux-only)
+   * [Homeassistant Energy Dashboard](#homeassistant-energy-dashboard)
+
 ## General Info
 
-For ease of handling, you can clone this repo locally using `git clone`. This makes updating to a newer release
-more easy. See the git clone documentation for details.
+**IMPORTANT INFORMATION:**
 
-Check that all required modules are installed, use `check_reqirements.py` to see which are missing.
+* HA, MQTT and this set of Python scripts are independent units. You need to have as prerequisite HA and MQTT successfully up and running. They can therefore run on separate hosts/containers and connect to each other as configured.
+
+* You can't run this scripts as [HA Python Integration](https://www.home-assistant.io/integrations/python_script/). This solution contains a set of single python files working together and not a single one required by HA. Doubting that making it a single script would work as the necessary error handling will in case restart the script which may negatively interfere with HA.
+
+* You need per solmate installed one instance of the script individually configured (if you have more than one).
+
+* For the time being, you can only send data to MQTT but not recieve data like to configure SolMate.
+
+* Compared to the [solmate SDK](https://github.com/eet-energy/solmate-sdk), the code provided has tons of [error handling](#error-handling) that will make the script run continuosly even if "strange" stuff occurs.
+
+## Preperation and Quick Start
+
+* For ease of handling, clone this repo locally using [git clone](https://github.com/git-guides/git-clone) assuming you have installed git and know how to use it. This makes updating to a newer release more easy. As rule of thumb, use your home directory as target.
+
+* Otherwise, manually copy the files to a location of your choice. As rule of thumb, use a folder in your home directory as target.
+
+* Check that all required modules are installed, run `python check_reqirements.py` to see which are missing.
 You may need to cycle thru until all requirements are satisified.
 
-**IMPORTANT**: You need one Python script configured per solmate installed (if you have more than one).
+* [Configure](#solmate_envpy) the `.env` file.
+* Open two shells (assuming you are running a Linux derivate):
+  * In the first shell run: `tail -f /var/log/syslog | grep solmate` to monitor logs. <br>
+Alternatively set `console_print` in `solmate.py` temporarily to true in the script.
+  * In the second shell start the script with `python solmate.py` from the installed location.
+* You should now see the script running successfully. If not check the configuration.
+* Monitor MQTT posts, use [MQTT Explorer](https://github.com/mmattel/Raspberry-Pi-Setup/tree/main#steps) to do so. The SolMate should show up as `eet/sensor/solmate` (or how you configured it).
+* Check that HA shows in MQTT the new SOLMATE/EET device.
 
-**IMPORTANT**: For the time being, you can only send data to MQTT but not recieve data like to configure SolMate.
+## Script Components
 
-**IMPORTANT**: Compared to the [solmate SDK](https://github.com/eet-energy/solmate-sdk), the code provided has tons of [error handling](#error-handling) that will make the script run continuosly even if "strange" stuff occurs.
-
-## solmate.py
+### solmate.py
 
 This is the main program that imports all other components. It also has a proper CTRL-C and SIGTERM handling.
 
@@ -58,7 +92,7 @@ Update MQTT topics for Homeassistant.
 Once a day queries called by scheduler.
 ```
 
-### Known Routes
+#### Known Routes
 
 All routes have as data {} (= no data) except where mentioned
 
@@ -72,7 +106,7 @@ note that you must provide proper data as attribute, see `get_api_info` output f
 7. `logs`  
 note that you must provide proper data as attribute, see `get_api_info` output for more details
 
-## `solmate_websocket.py`
+### `solmate_websocket.py`
 
 1. Initialize with `smc_conn = smc.connect_to_solmate(solmate_config, console_print)`.
 2. `smc_conn.authenticate()` with the array configuring solmate from env file or envvar as parameter.  
@@ -88,38 +122,17 @@ the timer_config defines waiting times for the next query in case of coverable e
 `timer_wait` waits the given time and logs, in case enabled, that it is waiting for the particular time.
 `restart_program` when called, restarts the script like from cmd line. Necessary for unrecoverable errors.
 
-## `solmate_mqtt.py`
+### `solmate_mqtt.py`
 
 Without going into much details, to make EET Solmate auto discoverable for Home Assistant, the subroutine `construct_ha_config_message` is called. Do intensively testing when changing stuff here. I recommend using [mqtt Explorer](https://github.com/mmattel/Raspberry-Pi-Setup/tree/main#steps) to monitor the message flow.
 
 
-## Error Handling
-
-Errors are handled on best effort and in **most cases** handed over to the caller to decide.
-
-1. Authentication error: `solmate.py` --> `sys.exit()`
-2. `query_solmate` --> `inexistent route` --> `solmate_websocket` --> `sys.exit()`
-3. Missing or wrong `data` in request --> `query_solmate` --> `send_api_request` --> `ConnectionClosedOK` -->  
-watch the log, it will continue after the waiting time. Can't be covered due to missing details in the response!
-4. When the `response` returned `False` --> `query_solmate` --> just wait the `timer_response` and continue.
-
-You will see moste likely regular automatically program restarts due to a websocket error raised:
-`sent 1011 (unexpected error) keepalive ping timeout; no close frame received`
-See [What does ConnectionClosedError: sent 1011 (unexpected error)](https://websockets.readthedocs.io/en/stable/faq/common.html#what-does-connectionclosederror-sent-1011-unexpected-error-keepalive-ping-timeout-no-close-frame-received-mean)
-for details. The program covers the error and restarts completely.
-
-For those who are interested in the details: There is an impact on the configuration in the websocket code.
-The websocket `ping_timeout` which defaults to 20s is lower than `timer_live` which defaults to 30s.
-It is maybe not a good idea to have them on the same value and a ping should be more frequent than
-regular recurring requests. For a long term solution, the server (both variants of `eet_server_uri` in the config, this is on the EET side) should handle ping/pong requests properly. Currently they are not that stable.
-Also see the envvar `timer_response_restart` in the `.env` description below for additional details.
-
-## `solmate_env.py`
+### `solmate_env.py`
 
 This reads config data from the `.env` file or a file defined as cmd line argument.
 You can also use envvars instead.
 
-### Necessary Data in the '.env' File
+#### Necessary Data in the '.env' File
 
 As a starting point, make a copy of the `.env-sample` file, name it `.env` and adapt it accordingly.
 
@@ -163,6 +176,24 @@ timer_conn_closed=30
 # 3 * 30 = 90s = 1.5min
 timer_attempt_restart=3
 ```
+
+## Error Handling
+
+Errors are handled on best effort and in **most cases** handed over to the caller to decide.
+
+1. Authentication error: `solmate.py` --> `sys.exit()`
+2. `query_solmate` --> `inexistent route` --> `solmate_websocket` --> `sys.exit()`
+3. Missing or wrong `data` in request --> `query_solmate` --> `send_api_request` --> `ConnectionClosedOK` -->  
+watch the log, it will continue after the waiting time. Can't be covered due to missing details in the response!
+4. When the `response` returned `False` --> `query_solmate` --> continue but count the number of consecutive errors. Restart after `timer_attempt_restart` attempts.
+5. You will see moste likely regular automatically program restarts due to a websocket error raised:
+`sent 1011 (unexpected error) keepalive ping timeout; no close frame received`. See [What does ConnectionClosedError: sent 1011 (unexpected error)](https://websockets.readthedocs.io/en/stable/faq/common.html#what-does-connectionclosederror-sent-1011-unexpected-error-keepalive-ping-timeout-no-close-frame-received-mean) for details. The program covers the error and restarts completely.
+
+For those who are interested in the details of `sent 1011`: There seems to be an impact on the configuration in the websocket code. The websocket `ping_timeout` which defaults to 20s is lower than `timer_live` which defaults to 30s.
+It is maybe not a good idea to have them on the same value and a ping should be more frequent than
+regular recurring requests. For a long term solution, the server (both variants of `eet_server_uri` in the config, this is on the EET side!), should handle ping/pong requests properly. Currently they are _not that stable_ triggering the error handling.
+
+While connecting to the external server of EET is a bit more stable and coverable errors are in the timeframe of hours, you will see when directly connecting to the local solmate errors in the interval of some minutes. Both issues have been raised to EET and agreed to be valid, but no solution has been provided so far. It is therefore recommended to use the external EET server for queries and not the solmate directly, though that solution would be preferred avoiding not necessary internet traffic.
 
 ## Example Calls
 
