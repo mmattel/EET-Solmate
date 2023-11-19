@@ -1,15 +1,21 @@
+# comment all modules that are alrady installed.
+# double commented modules SHOULD be provided by the system.
+# the program complains if not, uncomment in case and re-run check_requitements.py
+# this can be OS dependent.
+  
 asyncio
-base64
+##base64
 datetime
-dotenv
-hashlib
-json
-os
+##hashlib
+##json
+##os
 paho-mqtt
-signal
-sys
-syslog
-termcolor
-time
+python-dotenv
 schedule
+##signal
+##sys
+##syslog
+termcolor
+##threading
+##time
 websockets

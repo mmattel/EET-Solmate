@@ -9,10 +9,11 @@ from termcolor import colored
 from datetime import datetime
 import solmate_env as env
 import solmate_mqtt as smmqtt
+import solmate_utils as utils
 import solmate_websocket as smws
 
-# version 1.1.2
-# 2023.09.02
+# version 2.0.0
+# 2023.11.01
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -28,84 +29,91 @@ def print_request_response(route, response):
 	else:
 		print(colored(route + ': ', 'red') + str(response))
 
-def query_once_a_day(smws_conn, route, data, timer_config, mqtt, smws, print_response, console_print, endpoint):
+def query_once_a_day(smws_conn, route, data, merged_config, mqtt, smws, print_response, console_print, endpoint):
 	# send request but only when triggered by the scheduler
 	# use only for requests with routes that change rarely, more requests can be added
-	smws.logging('Once a day queries called by scheduler.', console_print)
-	response = smws_conn.query_solmate(route, data, timer_config, mqtt)
+	utils.logging('Once a day queries called by scheduler.', console_print)
+	response = smws_conn.query_solmate(route, data, merged_config, mqtt)
 	if response != False:
 		if not 'timestamp' in response:
 			# fake a timestamp into the response if not present
 			response['timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+		if not 'operating_state' in response:
+			# fake an operating_state into the response if not present, the content will be added in mqtt.
+			response['operating_state'] = ''
 		if print_response:
 			print_request_response(route, response)
 		if mqtt:
-			mqtt.send_update_message(response, endpoint)
+			mqtt.send_sensor_update_message(response, endpoint)
 
 def main():
 
-	# log timer calls. set to false if all works and you just loop thru the live values
-	# to avoid polluting syslog with data  
-	add_log = False
+	# get envvars to configure access either from file or from os/docker envvars
+	merged_config = env.process_env()
 
-	# enable/disable printing _response_ data to the console, useful for testing
-	print_response = False
-
-	# print logging data to console (conditional) and syslog (always)
-	# the value is optional and defaults to False
-	console_print = True
-
-	# globally enable/disable mqtt, makes it easier for testing
-	use_mqtt = True
+	# get the general program config data
+	add_log = True if merged_config['general_add_log'] == 'True' else False
+	print_response = True if merged_config['general_print_response'] == 'True' else False
+	console_print = True if merged_config['general_console_print'] == 'True' else False
+	use_mqtt = True if merged_config['general_use_mqtt'] == 'True' else False
 
 	# initialize colors for output, needed for Windows
 	if sys.platform == 'win32':
 		os.system('color')
 
-	# get envvars to configure access either from file or from os/docker envvars
-	mqtt_config, solmate_config, timer_config = env.process_env(smws)
-
-	# connect and authenticate, dont continue if this fails
-	if 'eet_server_uri' not in solmate_config.keys():
+	# connect and authenticate, don't continue if this fails
+	if 'eet_server_uri' not in merged_config.keys():
 		# if the uri key is not present, exit.
 		# if the uri key is present but empty or wrong, the error can and will be catched below
-		smws.logging('\'eet_server_uri\' was not defined in the configuration, exiting.', console_print)
+		utils.logging('\'eet_server_uri\' was not defined in the configuration, exiting.', console_print)
 		sys.exit()
 
 	try:
 		# Initialize websocket
-		smws_conn = smws.connect_to_solmate(solmate_config, console_print)
+		smws_conn = smws.connect_to_solmate(merged_config, console_print)
 		response = smws_conn.authenticate()
 	except Exception as err:
-		smws.logging('Failed creating connection/authentication to websocket class.', console_print)
+		utils.logging('Failed creating connection/authentication to websocket class.', console_print)
 		# wait until the next try, but do it with a full restart
-		smws.timer_wait(timer_config, 'timer_offline', console_print, True)
-		smws_conn.restart_program()
+		utils.timer_wait(merged_config, 'timer_offline', console_print, True)
+		utils.restart_program(console_print)
+
+	# check the precense and value for local access
+	# if the solmates subdomain is part of the URI
+	if 'eet_local_subdomain' in merged_config:
+		# only if the key is configured
+		# value_if_true if condition else value_if_false
+		local = True if merged_config['eet_local_subdomain'] in merged_config['eet_server_uri'] else False
+	else:
+		local = False
 
 	# determine if the system is online
+	# when connected to the server, you get a 'online' response
+	# telling that the solmate is also conected to the server 
 	if 'online' in response:
 		online = response['online']
-	elif 'sol.eet.energy' in solmate_config['eet_server_uri']:
-		online = True
+		local = False
+	# when directly connected to the solmate, there is no response value returned
+	# we have to manually define it manually because we were able to directly connect
 	else:
-		online = False
+		online = local
 
 	# on startup, log and continue, or restart
 	# note that if during processing the solmate goes offline, the connection closes
 	# and with the automatic restart procedure, we endup in this questionaire here again
 	if online:
 		# solmate is online
-		smws.logging('SolMate is online.', console_print)
+		utils.logging('SolMate is online.', console_print)
 	else:
 		# solmate is not online
-		smws.logging('Your SolMate is offline.', console_print)
+		utils.logging('Your SolMate is offline.', console_print)
 		# wait until the next try, but do it with a full restart
-		smws.timer_wait(timer_config, 'timer_offline', console_print, True)
-		smws_conn.restart_program()
+		utils.timer_wait(merged_config, 'timer_offline', console_print, True)
+		utils.restart_program(console_print)
 
 	if use_mqtt:
 		# initialize and start mqtt
-		mqtt = smmqtt.solmate_mqtt(mqtt_config, smws, console_print)
+		mqtt = smmqtt.solmate_mqtt(merged_config, smws_conn, local, console_print)
 		mqtt.init_mqtt_client()
 		# note that signal handling must be done after initializing mqtt
 		# else the handler cant gracefully shutdown mqtt.
@@ -122,13 +130,13 @@ def main():
 
 	# start a scheduler for once-a-day requests like the 'get_solmate_info',
 	# this content changes rarely, most likely the version number from time to time.
-	# arguments: conn, route, data, timer_config, mqtt, smws, print_response
+	# arguments: conn, route, data, merged_config, mqtt, smws, print_response
 	schedule.every().day.at('23:45').do(
 			query_once_a_day,
 			smws_conn=smws_conn,
 			route='get_solmate_info',
 			data={},
-			timer_config=timer_config,
+			merged_config=merged_config,
 			mqtt=mqtt,
 			smws=smws,
 			print_response=print_response,
@@ -142,23 +150,29 @@ def main():
 	while True:
 	# loop to continuosly request live values
 
-		# query_solmate(route, value, timer_config, mqtt)
-		response = smws_conn.query_solmate('live_values', {}, timer_config, mqtt)
+		# query_solmate(route, value, merged_config, mqtt)
+		response = smws_conn.query_solmate('live_values', {}, merged_config, mqtt)
 
 		if response != False:
 			if print_response:
 				print_request_response('live_values', response)
 			if mqtt:
-				mqtt.send_update_message(response, 'live')
+				mqtt.send_sensor_update_message(response, 'live')
 
 		# check if there is a pending job due
 		schedule.run_pending()
 
-		# wait for the next round
-		smws.timer_wait(timer_config, 'timer_live', console_print, False)
+#		utils.logging('Rebooting.', console_print)
+#		response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
+#		mqtt.graceful_shutdown()
+#		sys.exit()
+
+		# wait for the next round (async, non blocking for any other running background processes)
+		utils.timer_wait(merged_config, 'timer_live', console_print, False)
 
 	if mqtt:
-		# make a graceful shutdown, but do not raise a signal, the program terminated "normally" 
+		# whyever we came here, but to be fail safe,
+		# make a graceful shutdown, but do not raise a signal, the program terminated "normally".
 		mqtt.graceful_shutdown()
 
 if __name__ == '__main__':
@@ -167,7 +181,7 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		# avoid printing ^C on the console
 		# \r = carriage return (octal 015)
-		smws.logging('\rInterrupted by keyboard', True)
+		utils.logging('\rInterrupted by keyboard', True)
 		try:
 			# terminate script by Control-C, exit code = 130
 			sys.exit(130)
