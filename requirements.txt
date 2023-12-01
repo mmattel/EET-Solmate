@@ -9,6 +9,7 @@ datetime
 ##hashlib
 ##json
 ##os
+##queue
 paho-mqtt
 python-dotenv
 schedule
@@ -16,6 +17,5 @@ schedule
 ##sys
 ##syslog
 termcolor
-##threading
 ##time
 websockets

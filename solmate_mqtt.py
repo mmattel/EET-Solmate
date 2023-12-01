@@ -1,7 +1,6 @@
 import json
 import sys
 import time
-import threading
 import signal
 import paho.mqtt.client as mqtt
 import solmate_utils as utils
@@ -165,15 +164,32 @@ class solmate_mqtt():
 
 	def _on_message(self, client, userdata, message):
 		# triggered on published messages when subscribed
+		# we can add here any actions based on subscribed topics
+		# atm, manage to reboot the solmate
+		# 'shutdown' would be possible if a topic/subscription is created
 		#print('MQTT retain: ' + str(message.retain))
 		#print("message: ", message.topic + ': ' + str(message.payload.decode('utf-8')))
-		# manage to reboot the solmate
 		if message.topic.endswith('command/reboot'):
 			self._manage_reboot(str(message.payload.decode('utf-8')).strip('\"'))
-		return
+
+	def _manage_reboot(self, message):
+		# exit if:
+		# - not connected to the local solmate or
+		# - there is already a reboot in progress
+		if (not self.local) or self.eet_reboot_in_progress:
+			return
+
+		if message:
+			# we have subscribed to a topic but the message can be empty
+			# this happens on initialisation of _on_message
+			self.eet_reboot_in_progress = True
+			self.send_sensor_update_message(self.remember_info_response, 'info')
+			utils.mqueue.put('reboot')
+			utils.logging('Initializing SolMate Reboot.', self.console_print)
 
 	def send_sensor_update_message(self, response, endpoint):
-		# add an operating state to the response
+		# only if it is the 'info' endpoint
+		# add additional info that is not present in the original to the response
 		if endpoint == 'info':
 			# remember the response to update the last message when rebooting
 			self.remember_info_response = response
@@ -186,35 +202,9 @@ class solmate_mqtt():
 		# send a mqtt update message, the format is fixed
 		self.mqttclient.publish(self.mqtt_sensor_topic + '/' + endpoint, payload = update, qos = self.mqtt_qos, retain = True)
 
-	def _manage_reboot(self, message):
-		# exit if:
-		# - not connected to the local solmate or
-		# - there is already a reboot in progress
-		if (not self.local) or self.eet_reboot_in_progress:
-			return
-
-		if message:
-			# if the message is not empty, proceed. we do not care about the content
-			self.eet_reboot_in_progress = True
-			self.send_sensor_update_message(self.remember_info_response, 'info')
-			utils.logging('Initializing SolMate Reboot.', self.console_print)
-
-			# start the cleanup after x seconds. pressing the reboot button multiple
-			# times is covered via the boolen variable and prevents running the code consecutive times
-			# threading is necessary, because we need to have a non-blocking waiting time
-			# for the cleanup (making the state normal)
-			t = threading.Timer(self.merged_config['timer_reboot'], self._set_operating_state_normal)
-			t.start()
-
-			# send the reboot command
-			response = self.smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, self.merged_config, self)
-			if response != False:
-				# wait that the reboot completes. this is blocking for other requests like live_values!
-				utils.timer_wait(self.merged_config, 'timer_reboot', console_print, False)
-				utils.logging('SolMate has Rebooted.', self.console_print)
-
-	def _set_operating_state_normal(self):
+	def set_operating_state_normal(self):
 		# do the cleanup after successful rebooting
+		utils.logging('SolMate has Rebooted.', self.console_print)
 		utils.logging('Back to normal operation.', self.console_print)
 		self._update_button_command_topic('reboot', '')
 		self.eet_reboot_in_progress = False

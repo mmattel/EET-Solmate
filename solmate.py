@@ -13,7 +13,7 @@ import solmate_utils as utils
 import solmate_websocket as smws
 
 # version 2.0.0
-# 2023.11.01
+# 2023.12.10
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -148,7 +148,22 @@ def main():
 	schedule.run_all()
 
 	while True:
-	# loop to continuosly request live values
+	# loop to continuosly request live values or process commands from mqtt
+
+		if mqtt and utils.mqueue.qsize() != 0:
+			# if we have a message from mqtt because a button was pressed like reboot
+			message = utils.mqueue.get()
+			# here we can distinguish different messages to process.
+			# 'shutdown' would be possible if catched by mqtt
+			if message == 'reboot':
+				response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
+				if response != False:
+					# if there is a response from the reboot command, print it
+					utils.logging(str(response), console_print)
+				# this gets only processed if websocket stays connected despite the reboot command
+				# which would drop it (reboot was not accepted), better safe than sorry
+				utils.timer_wait(merged_config, 'timer_reboot', console_print, False, True)
+				mqtt.set_operating_state_normal()
 
 		# query_solmate(route, value, merged_config, mqtt)
 		response = smws_conn.query_solmate('live_values', {}, merged_config, mqtt)
@@ -161,11 +176,6 @@ def main():
 
 		# check if there is a pending job due
 		schedule.run_pending()
-
-#		utils.logging('Rebooting.', console_print)
-#		response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
-#		mqtt.graceful_shutdown()
-#		sys.exit()
 
 		# wait for the next round (async, non blocking for any other running background processes)
 		utils.timer_wait(merged_config, 'timer_live', console_print, False)
