@@ -1,6 +1,6 @@
 # comment all modules that are alrady installed.
 # double commented modules SHOULD be provided by the system.
-# the program complains if not, uncomment in case and rerun check_requitements.py
+# the program complains if not, uncomment in case and re-run check_requitements.py
 # this can be OS dependent.
   
 asyncio
@@ -9,6 +9,7 @@ datetime
 ##hashlib
 ##json
 ##os
+##queue
 paho-mqtt
 python-dotenv
 schedule
