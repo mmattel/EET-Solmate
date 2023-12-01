@@ -90,7 +90,7 @@ class connect_to_solmate:
 			utils.logging(str(err), self.console_print)
 			raise Exception(err)
 
-	def ws_request(self, route, data, mqtt):
+	def ws_request(self, route, data):
 		# send request for the given route without error handling
 
 		try:
@@ -176,7 +176,7 @@ class connect_to_solmate:
 		# send request for the given route including error handling
 
 		try: 
-			response = self.ws_request(route, value, mqtt)
+			response = self.ws_request(route, value)
 			# request was successful, reset counter
 			self.count_before_restart = 0
 			return response
