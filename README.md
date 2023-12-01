@@ -137,6 +137,9 @@ This is informational only and possibly not complete. All routes have as data {}
   Note that you must provide proper data as attribute, see `get_api_info` output for more details.
 9. `shutdown`  
   This route has a data attribute like `{'shut_reboot': 'reboot'}`
+10. `set_system_time`  
+  This route has a data attribute like `{datetime: n}` where  
+  `const e = On()()`, `n = e.utc().format(t)` and `t = "YYYY-MM-DDTHH:mm:ss"` (using javascript as base)
 
 ### `solmate_websocket.py`
 
