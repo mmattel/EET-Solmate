@@ -8,18 +8,19 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
    * [Preperation and Quick Start](#preperation-and-quick-start)
    * [Script Components](#script-components)
       * [solmate.py](#solmatepy)
-         * [Known Routes](#known-routes)
       * [solmate_websocket.py](#solmate_websocketpy)
       * [solmate_mqtt.py](#solmate_mqttpy)
       * [solmate_utils.py](#solmate_utilspy)
       * [solmate_env.py](#solmate_envpy)
          * [Necessary Data in the '.env' File](#necessary-data-in-the-env-file)
    * [Error Handling](#error-handling)
+   * [Known Routes](#known-routes)
    * [Example Calls](#example-calls)
    * [Run as systemd Service (Linux Only)](#run-as-systemd-service-linux-only)
    * [Home Assistant](#home-assistant)
       * [MQTT Sensors](#mqtt-sensors)
       * [Energy Dashboard](#energy-dashboard)
+      * [Total Solar Production](#total-solar-production)
       * [Template Sensors](#template-sensors)
 
 ## General Info
@@ -35,7 +36,7 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
  Doubting that making it a single script would work as the necessary error handling will in case restart
  the script which may negatively interfere with HA.
 
-* You need per solmate installed, one instance of the script individually configured (if you have more than one).
+* You need per Solmate installed, one instance of the script individually configured (if you have more than one).
 
 * Stability  
   Compared to the [solmate SDK](https://github.com/eet-energy/solmate-sdk), the code provided has tons of [error handling](#error-handling) that will make the script run continuosly even if "strange" stuff occurs.
@@ -87,7 +88,7 @@ Alternatively set `console_print` in `solmate.py` temporarily to true in the scr
 * You should now see the script running successfully.  
   If not check the configuration.
 * Monitor MQTT posts, use [MQTT Explorer](https://github.com/mmattel/Raspberry-Pi-Setup/tree/main#steps) to do so.  
-  The SolMate should show up as `eet/sensor/solmate` (or how you configured it).
+  The Solmate should show up as `eet/sensor/solmate` (or how you configured it).
 * Check that HA shows in MQTT the new SOLMATE/EET device.
 
 ## Script Components
@@ -103,7 +104,7 @@ To parametrize, you either can use:
 3. when no envvar file is present, envvars defined via the OS or e.g. docker
 
 There is a job scheduler for jobs (currently only the `get_solmate_info` is defined) that only needs
-to run once a day. The responses change rarely, but can, like the solmates sw-version. The job is
+to run once a day. The responses change rarely, but can, like the Solmates sw-version. The job is
 forced to run at startup and then on the defined interval, currently once a day at 23:45.
 
 On successful startup, the following messages are logged (exampe):
@@ -121,25 +122,6 @@ MQTT is connected and running.
 Update MQTT topics for Homeassistant.
 Once a day queries called by scheduler.
 ```
-
-#### Known Routes
-
-This is informational only and possibly not complete. All routes have as data {} (= no data) except where mentioned
-
-1. `get_api_info`
-2. `get_solmate_info`
-3. `live_values`
-4. `get_user_settings`
-5. `get_grid_mode`
-6. `get_injection_settings`  
-  Note that you must provide proper data as attribute, see `get_api_info` output for more details.
-7. `logs`  
-  Note that you must provide proper data as attribute, see `get_api_info` output for more details.
-9. `shutdown`  
-  This route has a data attribute like `{'shut_reboot': 'reboot'}`
-10. `set_system_time`  
-  This route has a data attribute like `{datetime: n}` where  
-  `const e = On()()`, `n = e.utc().format(t)` and `t = "YYYY-MM-DDTHH:mm:ss"` (using javascript as base)
 
 ### `solmate_websocket.py`
 
@@ -205,6 +187,25 @@ watch the log, it will continue after the waiting time. Can't be covered due to 
 
 For those who are interested in the details of `sent 1011`: Timing in websocket responses is critical,
 even when using asynchronous timers. If the underlaying ping-pong gets out of sync, a 1011 may occur.
+
+## Known Routes
+
+This is informational only and possibly not complete. All routes have as data `{}` (= no data) except where mentioned
+
+1. `get_api_info`
+2. `get_solmate_info`
+3. `live_values`
+4. `get_user_settings`
+5. `get_grid_mode`
+6. `get_injection_settings`  
+  Note that you must provide proper data as attribute, see `get_api_info` output for more details.
+7. `logs`  
+  Note that you must provide proper data as attribute, see `get_api_info` output for more details.
+9. `shutdown`  
+  This route has a data attribute like `{'shut_reboot': 'reboot'}`
+10. `set_system_time`  
+  This route has a data attribute like `{datetime: n}` where  
+  `const e = On()()`, `n = e.utc().format(t)` and `t = "YYYY-MM-DDTHH:mm:ss"` (using javascript as base)
 
 ## Example Calls
 
@@ -292,16 +293,53 @@ WantedBy=multi-user.target
 
 ### MQTT Sensors
 
-When everything went fine, you will see the solmate as device in MQTT. Note that you will see two `timestamps` by intention. The differentiate the following:
+When everything went fine, you will see the Solmate as device in MQTT.
+
+Most of the sensors shown originate from the Solmate but not all. The following sensors are created artificially and add information about the Solmate connected:
+
+* `connected_to`  
+  This shows where the solmate is connected to, either `local` or `server`.
+* `operating_state`  
+  This either shows `online` or `rebooting`
+* `timestamp`  
+  There are two timestamps shown, for details see below.
+* `reboot`  
+  This is a button you can click to reboot the Solmate. Note that this is only functional if the Solmate
+  is connected locally. Though clickable, it will not work when connected to the server as the server does
+  currently not provide the API. As an easy reminder where connected to, check `connected_to`.
+
+The two `timestamps` are by intention. The differentiate the following:
 
 * The first timestamp is updated once every `timer_live` query interval.
-* The other timestamp is updated once every nightly scheduled query at 23:45 getting the IP address and SW version only. As these values update quite rarely, there is no need to do that more often. 
+* The other timestamp is updated once every nightly scheduled query at 23:45  
+  Here only the IP address and SW version are queried. As these values update quite rarely,
+  there is no need to do that more often. 
 
-Note that both timers are updated on restart. Knowing this you can see if there was an out of schedule program restart due to error handling if the second timer is not at the scheduled interval.
+Note that both timers are updated on restart. Knowing this you can see if there was a program restart due to error handling if the second timer is not at the scheduled interval.
 
 ### Energy Dashboard
 
-At the time of writing, the HA energy dashboard has no capability to properly display ANY system where the battery is the central point and only carged by the solar panel respectively is the source of injecting energy. This is not EET specific. A [feature request](https://community.home-assistant.io/t/energy-flow-diagram-electric-power-update-needed/619621) has been filed.
+At the time of writing, the HA energy dashboard has no capability to properly display ANY system where the battery is the central point and only carged by the solar panel respectively is the source of injecting energy. This is not EET specific. A [feature request](https://community.home-assistant.io/t/energy-flow-diagram-electric-power-update-needed/619621) has been filed. You can add your vote if you want to push this.
+
+### Total Solar Production
+
+The Solmate does not provide an aggregated total solar production value. This needs to be added in HA manually.
+
+If not already done, add a new Integration: [Riemann sum integral](https://www.home-assistant.io/integrations/integration/).
+
+The following settings need to be made, adapt them according your needs:
+```
+state_class:         total
+source:              sensor.solmate_pv_power
+unit_of_measurement: kWh
+device_class:        energy
+icon:                mdi:solar-power
+friendly_name:       Solar Production
+method:              left
+round:               2
+unit_prefix:         k
+unit_time:           h
+```
 
 ### Template Sensors
 
