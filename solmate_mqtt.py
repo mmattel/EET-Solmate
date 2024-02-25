@@ -5,6 +5,10 @@ import signal
 import paho.mqtt.client as mqtt
 import solmate_utils as utils
 
+# 1.6.1 --> 2.0.0 https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html
+# we later can improve the <property> opject use when turning off mqttv3.x protocol use
+# see: http://www.steves-internet-guide.com/python-mqtt-client-changes/
+
 class solmate_mqtt():
 
 	def __init__(self, merged_config, smws_conn, local, console_print):
@@ -64,17 +68,43 @@ class solmate_mqtt():
 		# initialize the MQTT client
 		utils.logging('Initializing the MQTT client.', self.console_print)
 
-		self.mqttclient = mqtt.Client(client_id = self.mqtt_client_id, clean_session = True)
+		# protocol versions available
+		# MQTTv31 = 3
+		# MQTTv311 = 4
+		# MQTTv5 = 5
+
+		self.mqttclient = mqtt.Client(
+			mqtt.CallbackAPIVersion.VERSION2,
+			protocol = mqtt.MQTTv5,
+			client_id = self.mqtt_client_id
+		)
 		self.mqttclient.on_connect = self._on_connect
 		#self.mqttclient.on_disconnect = self.on_disconnect
 		#self.mqttclient.on_publish = self._on_publish	  # uncomment for testing purposes
 		self.mqttclient.on_message = self._on_message
-		self.mqttclient.username_pw_set(self.mqtt_username, self.mqtt_password)
-		self.mqttclient.will_set(self.mqtt_availability_topic, payload = 'offline', qos = 0, retain = True)
+		self.mqttclient.username_pw_set(
+			self.mqtt_username,
+			self.mqtt_password
+		)
+		self.mqttclient.will_set(
+			self.mqtt_availability_topic,
+			payload = 'offline',
+			qos = 0,
+			retain = True
+		)
 
+		# to make the code work with both MQTTv5 and MQTTv3.1.1 we need to set the properties object to None
 		# server/port issues are handled here
 		try:
-			self.mqttclient.connect(self.mqtt_server, port = self.mqtt_port, keepalive = 70)
+			self.mqttclient.connect(
+				self.mqtt_server,
+				port = self.mqtt_port,
+				keepalive = 70,
+				bind_address = '',
+				bind_port = 0,
+				clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+				properties = None
+			)
 			self.mqttclient.loop_start()
 		except Exception as err:
 			self.connect_ok = False
@@ -102,27 +132,49 @@ class solmate_mqtt():
 			#print(names[i])
 			#print(configs[i])
 			#print(config_topics[i])
-			self.mqttclient.publish(config_topics[i] + names[i] + '/config', payload = configs[i], qos = self.mqtt_qos, retain = True)
+			self.mqttclient.publish(
+				config_topics[i] + names[i] + '/config',
+				payload = configs[i],
+				qos = self.mqtt_qos,
+				retain = True,
+				properties = None
+			)
 
 		# set the button to make it show up
 		self._update_button_command_topic('reboot', '')
 
 		# subscribe to the system/button/command/topic to recieve messages triggered by HA
 		# like reboot or shutdown. the callback is _on_message.
-		self.mqttclient.subscribe(self.mqtt_button_topic + '/command/reboot')
+		self.mqttclient.subscribe(
+			self.mqtt_button_topic + '/command/reboot',
+			options = None,
+			properties = None
+		)
 
 	def _update_button_command_topic(self, command, payload):
 		# update the system command topic
 		#print(command)
 		#print(payload)
-		self.mqttclient.publish(self.mqtt_button_topic + '/command/' + command, payload = json.dumps(payload), qos = self.mqtt_qos, retain = True)
+		self.mqttclient.publish(
+			self.mqtt_button_topic + '/command/' + command,
+			payload = json.dumps(payload),
+			qos = self.mqtt_qos,
+			retain = True,
+			properties = None
+		)
 
 	def graceful_shutdown(self):
 		# the 'will_set' is not sent on graceful shutdown by design
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
 			utils.logging('\rShutting down MQTT gracefully.', self.console_print)
-			publish_result = self.mqttclient.publish(self.mqtt_availability_topic, payload = 'offline', qos = self.mqtt_qos, retain = True)
+			publish_result = self.mqttclient.publish(
+				self.mqtt_availability_topic,
+				payload = 'offline',
+				qos = self.mqtt_qos,
+				retain = True,
+				properties = None
+			)
 			publish_result.wait_for_publish() 
 			self.mqttclient.disconnect()
 			self.mqttclient.loop_stop()
@@ -140,11 +192,16 @@ class solmate_mqtt():
 				utils.logging('\rTerminated on request.', self.console_print)
 				sys.exit()
 
-	def _on_connect(self, client, userdata, flags, rc):
+	def _on_connect(self, client, userdata, flags, reason_code, properties = None):
 		# http://www.steves-internet-guide.com/mqtt-python-callbacks/
 		# online/offline needs to be exactly written like that for proper recognition in HA
-		if rc == 0:
-			client.publish(self.mqtt_availability_topic, payload = 'online', qos = self.mqtt_qos, retain = True)
+		if reason_code == 0:
+			client.publish(
+				self.mqtt_availability_topic,
+				payload = 'online',
+				qos = self.mqtt_qos,
+				retain = True
+			)
 			self.connect_ok = True
 			utils.logging('MQTT is connected and running.', self.console_print)
 		else:
@@ -159,7 +216,7 @@ class solmate_mqtt():
 			utils.logging('MQTT connection refused - ' + switcher.get(rc, 'unknown response'), self.console_print)
 			self.mqttclient.loop_stop()
 
-	def _on_publish(self, client, userdata, message):
+	def _on_publish(self, client, userdata, message, reason_codes, properties = None):
 		print(f'MQTT messages published: {message}')
 
 	def _on_message(self, client, userdata, message):
@@ -200,7 +257,13 @@ class solmate_mqtt():
 
 		update = self._construct_update_message(response)
 		# send a mqtt update message, the format is fixed
-		self.mqttclient.publish(self.mqtt_sensor_topic + '/' + endpoint, payload = update, qos = self.mqtt_qos, retain = True)
+		self.mqttclient.publish(
+			self.mqtt_sensor_topic + '/' + endpoint,
+			payload = update,
+			qos = self.mqtt_qos,
+			retain = True,
+			properties = None
+		)
 
 	def set_operating_state_normal(self):
 		# do the cleanup after successful rebooting

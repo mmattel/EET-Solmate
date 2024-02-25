@@ -7,11 +7,12 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
    * [Important Improvements](#important-improvements)
    * [Preperation and Quick Start](#preperation-and-quick-start)
    * [Script Components](#script-components)
-      * [solmate.py](#solmatepy)
-      * [solmate_websocket.py](#solmate_websocketpy)
-      * [solmate_mqtt.py](#solmate_mqttpy)
-      * [solmate_utils.py](#solmate_utilspy)
-      * [solmate_env.py](#solmate_envpy)
+      * [`solmate.py`](#solmatepy)
+      * [`solmate_websocket.py`](#solmate_websocketpy)
+      * [`solmate_mqtt.py`](#solmate_mqttpy)
+      * [`solmate_utils.py`](#solmate_utilspy)
+      * [`solmate_check.py`](#solmate_checkpy)
+      * [`solmate_env.py`](#solmate_envpy)
          * [Necessary Data in the '.env' File](#necessary-data-in-the-env-file)
    * [Error Handling](#error-handling)
    * [Known Routes](#known-routes)
@@ -27,44 +28,65 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
 
 **IMPORTANT INFORMATION:**
 
-* HA, MQTT and this set of Python scripts are independent units.  
-  You need to have as prerequisite HA and MQTT successfully up and running.
-  They can therefore run on separate hosts/containers and connect to each other as configured.
+* HA, MQTT and this set of Python scripts are **independent units**.  
+  You need to have as prerequisite HA with MQTT setup and a MQTT broker successfully up and running.
+  They can and should therefore run on separate hosts/containers and connect to each other as configured.
 
-* You can't run this scripts as [HA Python Integration](https://www.home-assistant.io/integrations/python_script/).  
- This solution contains a set of single python files working together and not a single one required by HA.
- Doubting that making it a single script would work as the necessary error handling will in case restart
- the script which may negatively interfere with HA.
+* You **can't** run this scripts as [HA Python Integration](https://www.home-assistant.io/integrations/python_script/).  
+  This solution contains a set of single python files working together and not a single one required by HA.
+  Doubting that making it a single script would work as the necessary error handling will in case restart
+  the script which may negatively interfere with HA.
+
+* You **can't** run this scripts as [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/).  
+  Shell commands terminate hard by HA post 60s runtime.  
+  Though if you find a way, let me know. 
+
+* When running HAOS, you can install the set of scripts in a folder, but...  
+  HA has NO systemd = you need to restart the script manually on reboot.  
+  You must reinstall the libraries required on reboot.  
+  You may use a virtual env to not get in conflict with any other HA libraries used.
 
 * You need per Solmate installed, one instance of the script individually configured (if you have more than one).
 
 * Stability  
   Compared to the [solmate SDK](https://github.com/eet-energy/solmate-sdk), the code provided has tons of [error handling](#error-handling) that will make the script run continuosly even if "strange" stuff occurs.
 
+* The scripts uses and works the latest Python libraries.
+
 ## Upgrading - Breaking Change
 
-When upgrading from release 1.x to 2.x some important steps need to be performed in the given sequence:
+* When upgrading from release 2.x to 3.x, some important steps need to be performed in the given sequence:
+  1. Upgrade / download all files from the repo, there are NEW and changed ones!
+  2. There are new dependencies. Check with `check-requirememts.py` if all of them are satisfied.
+  3. You MUST upgrade at least the `paho-mqtt` to version 2.x  
+  The code checks if this version is installed and refuses to continue if not!
 
-1. Upgrade / download all files from the repo, there are NEW ones!
-
-2. There are new dependencies. Check with `check-requirememts.py` if all of them are satisfied.
-
-3. As suggestion, take the new `.env-sample` file as base for your config.  
-There are new envvars. Configure all envvars according your environment / needs.
+* When upgrading from release 1.x to 2.x some important steps need to be performed in the given sequence:
+  1. Upgrade / download all files from the repo, there are NEW ones!
+  2. There are new dependencies. Check with `check-requirememts.py` if all of them are satisfied.
+  3. As suggestion, take the new `.env-sample` file as base for your config.  
+  There are new envvars. Configure all envvars according your environment / needs.
 
 ## Important Improvements
 
-With version 2.x, the code has been refactored and contains the following major improvements:
+* With version 3, following changes have been implemented.  
+  1. The MQTT code has been updated to fully use the capablities of the `paho-mqtt` v2 library.
+  2. A check routine has been added if the v2 library has been installed. The script ends if not.
+  3. When re-running the `check-requirements.py` script, you will get notified about the possibility
+  to additionally check and update other libraries like websockets. Post running several checks,
+  it is ok to do so.
+  4. The MQTT code now uses the MQTTv5 protocl but is setup for MQTTv3.x compatibility.
 
-1. You can now **reboot** your Solmate via HA / MQTT.  
-   This is beneficial if the Solmate SW needs a restart and you do not want to get outside.
+* With version 2.x, the code has been refactored and contains the following major improvements:
+  1. You can now **reboot** your Solmate via HA / MQTT.  
+  This is beneficial if the Solmate SW needs a restart and you do not want to get outside.
   Consider that this is only possible if you use the local connection,
   as the internet connection does not provide this API route.
   When using the internet connection, though pressing reboot in HA, no action takes place.  
   This can bee identified as no actions are logged.
-2. Querying the Solmate is now generally much more stable.  
+  2. Querying the Solmate is now generally much more stable.  
    The timer used between queries is now asynchron which does not longer block websocket communication.
-3. You can now use the local connection as default instead using the internet version.  
+  3. You can now use the local connection as default instead using the internet version.  
    Formerly, the local connection was much less stable than the internet one.  
    Using local, you always have access to your Solmate as long there is power and you are more independent
    compared to external server availability.
@@ -150,6 +172,12 @@ Prints the given message to the console and to syslog - which is useful when run
 Waits the given time and logs, in case enabled, that it is waiting for the particular time.
 * `restart_program`  
 When called, restarts the script like from cmd line. Necessary for unrecoverable errors.
+
+### `solmate_check.py`
+
+This is called at the very beginning post basic setup has been done and checks if library versions needed
+are satisfied. At the moment, only the `paho-mqtt` library is checked. Library versions need to be satisfied
+to continue. 
 
 ### `solmate_env.py`
 

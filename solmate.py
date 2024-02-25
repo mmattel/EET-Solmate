@@ -7,6 +7,7 @@ import signal
 import schedule
 from termcolor import colored
 from datetime import datetime
+import solmate_check as check
 import solmate_env as env
 import solmate_mqtt as smmqtt
 import solmate_utils as utils
@@ -60,6 +61,9 @@ def main():
 	# initialize colors for output, needed for Windows
 	if sys.platform == 'win32':
 		os.system('color')
+
+    # check for package versions because of breaking changes in libraries used
+	check.package_version(console_print)
 
 	# connect and authenticate, don't continue if this fails
 	if 'eet_server_uri' not in merged_config.keys():
