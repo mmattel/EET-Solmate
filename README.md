@@ -75,7 +75,7 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
   3. When re-running the `check-requirements.py` script, you will get notified about the possibility
   to additionally check and update other libraries like websockets. Post running several checks,
   it is ok to do so.
-  4. The MQTT code now uses the MQTTv5 protocl but is setup for MQTTv3.x compatibility.
+  4. The MQTT code now uses the MQTTv5 protocol but is setup for MQTTv3.x compatibility.
 
 * With version 2.x, the code has been refactored and contains the following major improvements:
   1. You can now **reboot** your Solmate via HA / MQTT.  
