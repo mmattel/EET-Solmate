@@ -10,6 +10,31 @@ import time
 # create a new queue which is used from all importing modules
 mqueue = queue.Queue()
 
+# this is just a preparation if the the deprecation would pop up, but has currently NO
+# effect and uses the default method of asyncio.get_event_loop()
+# tests have shown that it breaks the 'if' code as any request to the solmate runs thru
+# self.websocket.recv() which hangs forever if enabled.
+#
+# properly create an async loop because of a warning popping up with python >=3.10:
+# DeprecationWarning: There is no current event loop
+# https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_event_loop
+# https://stackoverflow.com/questions/73884117/how-to-replace-asyncio-get-event-loop-to-avoid-the-deprecationwarning
+def create_async_loop():
+	# comment/remove when self.websocket.recv() is fixed
+	loop = asyncio.get_event_loop()
+	return loop
+
+	# do not run this until clarified why self.websocket.recv() hangs forever
+	if sys.version_info < (3, 10):
+		loop = asyncio.get_event_loop()
+	else:
+		try:
+			loop = asyncio.get_running_loop()
+		except RuntimeError:
+			loop = asyncio.new_event_loop()
+		asyncio.set_event_loop(loop)
+	return loop
+
 def logging(message, console_print = False):
 	# print logging data to console (conditional) and syslog (always)
 
@@ -49,7 +74,7 @@ def timer_wait(merged_config, timer_name, console_print, add_log = True, mqtt_co
 		if mqtt_command == False:
 			if mqueue.qsize() != 0:
 				break
-		asyncio.get_event_loop().run_until_complete(_async_timer(0.5))
+		create_async_loop().run_until_complete(_async_timer(0.5))
 
 def restart_program(console_print, counter=0, mqtt=False):
 	# this restarts the program like you would have started it manually again

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# based on the idea from:
+# https://community.home-assistant.io/t/how-to-start-crond-automatically-when-restart/236675/2
+
+# get the scripts path
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
+# check if an instance of solmate is already running
+# avoid to create another instance
+is_running=$(ps | grep python | grep solmate)
+if [[ "$is_running" ]]
+then
+  exit
+fi
+
+# overwrite in the execute script the path
+# this is necessary as that bash script is then being copied to
+# another location and it needs to know the path to execute the python script
+sed -i "/SCRIPT_DIR=/c\SCRIPT_DIR=\"${SCRIPT_DIR}\" " $SCRIPT_DIR/crond-execute
+
+# delete any occurrences of existing solmate entries in teh crontab/root file
+sed -i "/\/config\/solmate/d" /etc/crontabs/root
+
+# add a new line to the crontab file including a redirected logoutput
+# this log output is onyl being populated when a startup error of the pythin script occurs
+sed -i "/\*\/15/i\*/2     *       *       *       *       run-parts /etc/periodic/solmate > ${SCRIPT_DIR}/crontabs.log 2>&1" /etc/crontabs/root
+
+# copy the executing script to the target location so it can be
+# processed by crond. the location is not reboot persistant and
+# will be recreated on reboot!
+mkdir -p /etc/periodic/solmate
+cp "${SCRIPT_DIR}/crond-execute" /etc/periodic/solmate/
+
+rm -f "${SCRIPT_DIR}/crond.log" || true
+rm -f "${SCRIPT_DIR}/crontab.log" || true
+
+# crond should not run
+# https://unix.stackexchange.com/questions/412805/crond-log-level-meaning
+if ! pgrep -x "crond" > /dev/null
+then
+  # start crond with loglevel 5
+  crond -b -l 3 -L "${SCRIPT_DIR}/crond.log" -c /etc/crontabs
+fi

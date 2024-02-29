@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# define the scripts path.
+# DO NOT DELETE or RENAME this variable
+SCRIPT_DIR="/config/shell/solmate"
+
+#echo "${SCRIPT_DIR}/bin/activate"
+#echo "${SCRIPT_DIR}/solmate.py" "${SCRIPT_DIR}/.env"
+#exit
+
+# activate the python virtual environment
+source "${SCRIPT_DIR}/bin/activate"
+
+# run the script
+# python buffers before writing to the output, -u disables that behavior
+nohup python -u "${SCRIPT_DIR}/solmate.py" "${SCRIPT_DIR}/.env" >> "${SCRIPT_DIR}/nohup.log" 2>&1 &
+
+# kill the running instances of crond - if found
+pgrep -x "crond" | xargs -r kill -9
