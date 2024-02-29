@@ -18,6 +18,8 @@ def process_env():
 			utils.logging('Envvar file: ' + str(sys.argv[1]) + ' as argument not found, exiting.', True)
 			sys.exit()
 	else:
+		# we excpect that the .env file is in THE SAME directory from which the script has been started!!
+		# if you start it from another directory, you must provide it as argument
 		if os.path.exists(env_file):
 			# no envvar file as argument, but an .env file is present in the same directory
 			utils.logging('Using env file: ' + str(env_file))

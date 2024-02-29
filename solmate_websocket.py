@@ -22,6 +22,8 @@ class connect_to_solmate:
 		self.server_uri = self.merged_config['eet_server_uri']
 		self.count_before_restart = 0
 		self.console_print = console_print
+		self.message_id = 0
+		self.websocket = None
 		# set of mandatory keywords in the query response if the endpoint does not exist
 		self.err_kwds = {'Response:', 'NotImplemetedError'}
 
@@ -32,9 +34,9 @@ class connect_to_solmate:
 		self.server_uri = uri
 
 	def _create_websocket(self):
-			# create and connect to websocket
+		# create and connect to websocket
 		try:
-			asyncio.get_event_loop().run_until_complete(self._create_socket())
+			utils.create_async_loop().run_until_complete(self._create_socket())
 		except Exception:
 			# the reason for the exception has been logged already, just exit
 			raise
@@ -43,6 +45,10 @@ class connect_to_solmate:
 		# create a websocket and connect it to the endpoint.
 		try:
 			utils.logging('Create Socket.', self.console_print)
+			# needed when redirected for example
+			if self.websocket is not None:
+				await self.websocket.close()
+
 			self.websocket = await websockets.client.connect(self.server_uri)
 			# you may want to add additional connect parameters like 'ping_interval=xxx' and 'ping_timeout=xxx'
 			# see the readme.md file for a possible reason
@@ -54,7 +60,6 @@ class connect_to_solmate:
 
 	async def _send_api_request(self, data):
 		# send an api request with the given data and return response data.
-
 		try:
 			self.message_id += 1
 			await self.websocket.send(json.dumps(data))
@@ -94,7 +99,7 @@ class connect_to_solmate:
 		# send request for the given route without error handling
 
 		try:
-			response = asyncio.get_event_loop().run_until_complete(
+			response = utils.create_async_loop().run_until_complete(
 				self._send_api_request(
 					{'id': self.message_id, 'route': route, 'data': data}
 				)
@@ -114,7 +119,7 @@ class connect_to_solmate:
 			# get the response to the request of the login route with the login data
 			# note to expect that the endpoint 'login' exists
 			utils.logging('Authenticating.', self.console_print)
-			response = asyncio.get_event_loop().run_until_complete(self._send_api_request(
+			response = utils.create_async_loop().run_until_complete(self._send_api_request(
 				{
 					'id': self.message_id,
 					'route': 'login',
@@ -136,7 +141,7 @@ class connect_to_solmate:
 				correct_server = False
 				while not correct_server:
 					# get the response to the authentication route with the authentication data
-					response = asyncio.get_event_loop().run_until_complete(self._send_api_request(
+					response = utils.create_async_loop().run_until_complete(self._send_api_request(
 						{
 							'id': self.message_id,
 							'route': 'authenticate',
@@ -153,7 +158,7 @@ class connect_to_solmate:
 						redirect_uri = str(response['redirect'])
 						utils.logging('Got redirected to: ' + redirect_uri, self.console_print)
 						self._redirected_server(redirect_uri)
-						asyncio.get_event_loop().run_until_complete(self._create_socket())
+						utils.create_async_loop().run_until_complete(self._create_socket())
 					else:
 						# when there is no redirect parameter, the socket is connected to the correct instance
 						correct_server = True
