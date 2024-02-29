@@ -26,8 +26,6 @@ sed -i "/\/config\/solmate/d" /etc/crontabs/root
 # this log output is onyl being populated when a startup error of the pythin script occurs
 sed -i "/\*\/15/i\*/2     *       *       *       *       run-parts /etc/periodic/solmate > ${SCRIPT_DIR}/crontabs.log 2>&1" /etc/crontabs/root
 
-#sed -i "/15min/c\*/15    *       *       *       *       run-parts /etc/periodic/15min > ${SCRIPT_DIR}/crontabs.log 2>&1" /etc/crontabs/root
-
 # copy the executing script to the target location so it can be
 # processed by crond. the location is not reboot persistant and
 # will be recreated on reboot!
