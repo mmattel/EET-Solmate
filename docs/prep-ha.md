@@ -48,6 +48,11 @@ do so.
 * You will now see your automation in the list.
 * For testing, change to the HA development page to services and select `Shell Command: start_solmate`.
 
+### Execution Delay
+
+When `crond-prepare` gets started, it takes between 3 and 5 minutes that crond finally executes `crond-execute`.
+This is normal and expected. If interested, you can monitor the progress with `tail -f crond.log`.
+
 ### Monitoring
 
 Do the following to monitor the startup procedure and running logs, in a terminal of HAOS. Note that logs can't
