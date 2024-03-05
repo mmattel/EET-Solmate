@@ -11,9 +11,11 @@ This section is valid when running a dockerized HA or when using a separate host
     git fetch --all --tags
     ```
   * Use the following commands **for updates**:  
+    Note that this will drop any changes made except configuration.  
     ```
     cd solmate
     git checkout main
+    git stash -u && git stash drop
     git pull --rebase origin main
     git fetch --all --tags
     ```
