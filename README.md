@@ -2,6 +2,8 @@
 
 A Python script to read data from a EET SolMate and send it to a MQTT broker for the use with Homeassistant.
 
+<a href="https://www.buymeacoffee.com/mmattel" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
    * [General Info](#general-info)
    * [Upgrading - Breaking Changes](#upgrading---breaking-changes)
    * [Important Improvements](#important-improvements)
