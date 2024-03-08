@@ -99,7 +99,12 @@ class solmate_mqtt():
 			self.mqttclient.connect(
 				self.mqtt_server,
 				port = self.mqtt_port,
-				keepalive = 70,
+				# http://www.steves-internet-guide.com/mqtt-keep-alive-by-example/
+				# no need to set this value with paho-mqtt
+				# this avoids on the broker the following message pairs beling logged
+				# "Client solmate_mqtt closed its connection.
+				# "Client xyz closed its connection.
+				#keepalive = 70,
 				bind_address = '',
 				bind_port = 0,
 				clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY,
