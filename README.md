@@ -7,8 +7,8 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
    * [General Info](#general-info)
    * [Upgrading - Breaking Changes](#upgrading---breaking-changes)
    * [Important Improvements](#important-improvements)
-   * [Preperation and Quick Start](#preperation-and-quick-start)
-   * [Preperation for HAOS](#preperation-for-haos)
+   * [Preparation and Quick Start](#preparation-and-quick-start)
+   * [Preparation for HAOS](#preparation-for-haos)
    * [Script Components](#script-components)
    * [Error Handling](#error-handling)
    * [Known Routes](#known-routes)
@@ -53,13 +53,13 @@ See the [breaking changes](./breaking.md) for details.
 
 See the [changelog](./changelog.md) for details.
 
-## Preperation and Quick Start
+## Preparation and Quick Start
 
 This section is valid when running a dockerized HA or when using a separate host running the solmate script.
 
 See the [Standard](./docs/prep-standard.md) description for details.
 
-## Preperation for HAOS
+## Preparation for HAOS
 
 When running HAOS you **can** prepare the environment to autostart the solmate script.
 
