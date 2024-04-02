@@ -41,9 +41,11 @@ class solmate_mqtt():
 		#	eet/solmate/sensor/sensor_name/availability
 	
 		self.mqtt_button_topic = self.mqtt_prefix + '/button/' + self.mqtt_topic
+		self.mqtt_preset_topic = self.mqtt_prefix + '/preset/' + self.mqtt_topic
 		self.mqtt_sensor_topic = self.mqtt_prefix + '/sensor/' + self.mqtt_topic
 		self.mqtt_switch_topic = self.mqtt_prefix + '/switch/' + self.mqtt_topic
 		self.mqtt_button_config_topic = self.mqtt_ha + '/button/' + self.mqtt_topic
+		self.mqtt_preset_config_topic = self.mqtt_ha + '/preset/' + self.mqtt_topic
 		self.mqtt_sensor_config_topic = self.mqtt_ha + '/sensor/' + self.mqtt_topic
 		self.mqtt_switch_config_topic = self.mqtt_ha + '/switch/' + self.mqtt_topic
 		self.mqtt_availability_topic = self.mqtt_prefix + '/sensor/' + self.mqtt_topic + '/availability'
@@ -79,7 +81,7 @@ class solmate_mqtt():
 			client_id = self.mqtt_client_id
 		)
 		self.mqttclient.on_connect = self._on_connect
-		#self.mqttclient.on_disconnect = self.on_disconnect
+		self.mqttclient.on_disconnect = self._on_disconnect
 		#self.mqttclient.on_publish = self._on_publish	  # uncomment for testing purposes
 		self.mqttclient.on_message = self._on_message
 		self.mqttclient.username_pw_set(
@@ -148,6 +150,7 @@ class solmate_mqtt():
 		# set the button to make it show up
 		self._update_button_command_topic('reboot', '')
 
+	def _do_mqtt_subscriptions(self):
 		# subscribe to the system/button/command/topic to recieve messages triggered by HA
 		# like reboot or shutdown. the callback is _on_message.
 		self.mqttclient.subscribe(
@@ -196,6 +199,9 @@ class solmate_mqtt():
 				# the program was politely asked to terminate, we log and grant that request.
 				utils.logging('\rTerminated on request.', self.console_print)
 				sys.exit()
+		else:
+			self.mqttclient.loop_stop()
+			sys.exit()
 
 	def _on_connect(self, client, userdata, flags, reason_code, properties = None):
 		# http://www.steves-internet-guide.com/mqtt-python-callbacks/
@@ -209,17 +215,19 @@ class solmate_mqtt():
 			)
 			self.connect_ok = True
 			utils.logging('MQTT is connected and running.', self.console_print)
+			# we should always subscribe from on_connect callback to be sure
+			# the subscription(s) are persisted across reconnections like client.subscribe("$SYS/#")
+			# it is not necessary that the topic is already available.
+			self._do_mqtt_subscriptions()
 		else:
-			switcher = {
-				1: 'incorrect protocol version',
-				2: 'invalid client identifier',
-				3: 'server unavailable',
-				4: 'bad username or password',
-				5: 'not authorised',
-			}
 			self.connect_ok = False
-			utils.logging('MQTT connection refused - ' + switcher.get(rc, 'unknown response'), self.console_print)
-			self.mqttclient.loop_stop()
+			utils.logging('MQTT connection refused: ' + str(reason_code), self.console_print)
+			self.graceful_shutdown()
+
+	def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties = None):
+		if reason_code != 0:
+			# https://github.com/eclipse/paho.mqtt.python/blob/master/src/paho/mqtt/reasoncodes.py
+			utils.logging('MQTT disconnected: ' + str(reason_code.getName()), self.console_print)
 
 	def _on_publish(self, client, userdata, message, reason_codes, properties = None):
 		print(f'MQTT messages published: {message}')
@@ -312,11 +320,13 @@ class solmate_mqtt():
 		device_values['manufacturer'] = 'EET Energy'
 
 		live = '/live'
-		info = '/info'
 		live_n = 'live_'
+		info = '/info'
 		info_n = 'info_'
 		button = '/button'
 		button_n = 'button_'
+		preset = '/preset'
+		preset_n = 'preset_'
 		switch = '/switch'
 		switch_n = 'switch_'
 		dictionaries = {}
@@ -570,5 +580,37 @@ class solmate_mqtt():
 			'retain': False
 		}
 		configs[i] = json.dumps(dictionaries[name])
+
+		# collection of presets like min/maximum_injection and minimum_battery_percentage etc
+		# add all presets here to be part of the system hierarchy
+#		i += 1
+#		n = 'user_minimum_injection'
+#		name = preset_n + n
+#		names[i] = '/' + name
+#		config_topics[i] = self.mqtt_preset_config_topic
+#		dictionaries[name] = {
+#			'name': n,
+#			# the range is between 0 and 800, need to check ho to limit
+#			'value_template': '{{ (value_json.' + n + ' | int ) }}',
+#			'unique_id': self.mqtt_topic + '_sensor_' + name,
+#			'availability_topic': self.mqtt_availability_topic,
+#			'unit_of_measurement': '%',
+#			'device': device_values,
+#			'icon': 'mdi:battery-high',
+#			'retain': True
+#
+#			'friendly_name': name,
+#			'command_topic': self.mqtt_preset_topic + '/preset/' + n,
+#			'availability_topic': self.mqtt_availability_topic,
+#			'unique_id': self.mqtt_topic + '_' + name,
+#			'value_template': '{{ value_json.' + n + ' }}',
+#			'device': device_values,
+#			'entity_category': 'config',
+#			'device_class': 'restart',
+#			'payload_press': 'doit',
+#			'qos': self.mqtt_qos,
+#			'retain': False
+#		}
+#		configs[i] = json.dumps(dictionaries[name])
 
 		return names, configs, config_topics

@@ -10,9 +10,6 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
    * [Preparation and Quick Start](#preparation-and-quick-start)
    * [Preparation for HAOS](#preparation-for-haos)
    * [Script Components](#script-components)
-   * [Error Handling](#error-handling)
-   * [Known Routes](#known-routes)
-   * [Example Calls](#example-calls)
    * [Run as systemd Service (Linux Only)](#run-as-systemd-service-linux-only)
    * [Home Assistant](#home-assistant)
       * [MQTT Sensors](#mqtt-sensors)
@@ -67,7 +64,7 @@ See the [HAOS - solmate](./docs/prep-ha.md) description for details.
 
 ## Script Components
 
-See the [description](./docs/script-components.md) for details.
+See the linked [description](./docs/script-components.md) for details.
 
 ## Run as systemd Service (Linux Only)
 

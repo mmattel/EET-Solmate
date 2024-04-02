@@ -4,39 +4,43 @@
 # https://community.home-assistant.io/t/how-to-start-crond-automatically-when-restart/236675/2
 
 # get the scripts path
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+SCRIPT_DIR=$(dirname $(readlink -f "$0"))
+SCRIPT_DIR_SED=${SCRIPT_DIR//\//\\/}
+LAST_DIR_NAME=$(basename "$SCRIPT_DIR")
 
-# check if an instance of solmate is already running
+# check if a solmate instance from the particular directory is already running
 # avoid to create another instance
-is_running=$(ps | grep python | grep solmate)
+is_running=$(ps | grep python | grep "$SCRIPT_DIR")
 if [[ "$is_running" ]]
 then
   exit
 fi
 
-# overwrite in the execute script the path
+# overwrite the path in the execute script located in SCRIPT_DIR
 # this is necessary as that bash script is then being copied to
 # another location and it needs to know the path to execute the python script
-sed -i "/SCRIPT_DIR=/c\SCRIPT_DIR=\"${SCRIPT_DIR}\" " $SCRIPT_DIR/crond-execute
+sed -i "/SCRIPT_DIR=/c\SCRIPT_DIR=${SCRIPT_DIR_SED}" $SCRIPT_DIR/crond-execute
 
-# delete any occurrences of existing solmate entries in teh crontab/root file
-sed -i "/\/config\/solmate/d" /etc/crontabs/root
+# delete any occurrences of existing solmate entries in the /etc/crontabs/root file
+sed -i "/${SCRIPT_DIR_SED}/d" /etc/crontabs/root
 
-# add a new line to the crontab file including a redirected logoutput
-# this log output is onyl being populated when a startup error of the pythin script occurs
+# add a new line to the /etc/crontabs/root file including a redirected logoutput
+# this log output is onyl being populated when a startup error of the python script occurs
 sed -i "/\*\/15/i\*/2     *       *       *       *       run-parts /etc/periodic/solmate > ${SCRIPT_DIR}/crontabs.log 2>&1" /etc/crontabs/root
 
-# copy the executing script to the target location so it can be
-# processed by crond. the location is not reboot persistant and
-# will be recreated on reboot!
+# copy the executing script to the target location so it can be processed by crond.
+# the location is not reboot persistent and will be recreated on reboot!
 mkdir -p /etc/periodic/solmate
-cp "${SCRIPT_DIR}/crond-execute" /etc/periodic/solmate/
+cp "${SCRIPT_DIR}/crond-execute" /etc/periodic/"$LAST_DIR_NAME"/
 
 rm -f "${SCRIPT_DIR}/crond.log" || true
 rm -f "${SCRIPT_DIR}/crontab.log" || true
 
 # crond should not run
 # https://unix.stackexchange.com/questions/412805/crond-log-level-meaning
+# we cant destinguish if there are more than one solmates configured starting crond.
+# we cant destinguish who has started crond
+# in case, we log all info to the first one that gets started!
 if ! pgrep -x "crond" > /dev/null
 then
   # start crond with loglevel 5

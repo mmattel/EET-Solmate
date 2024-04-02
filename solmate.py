@@ -115,6 +115,15 @@ def main():
 		utils.timer_wait(merged_config, 'timer_offline', console_print, True)
 		utils.restart_program(console_print)
 
+	# check if we should *only* print the current API info response
+	if 'general_api_info' in merged_config.keys():
+		# if the api_info key is present check for True:
+		if merged_config['general_api_info'] == 'True':
+			response = smws_conn.query_solmate('get_api_info', {}, merged_config)
+			print('\n\'get_api_info\' route info requested: \n')
+			print(json.dumps(response, ensure_ascii=False, indent=2, separators=(',', ': ')))
+			sys.exit()
+
 	if use_mqtt:
 		# initialize and start mqtt
 		mqtt = smmqtt.solmate_mqtt(merged_config, smws_conn, local, console_print)

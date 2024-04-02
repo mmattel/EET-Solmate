@@ -177,7 +177,7 @@ class connect_to_solmate:
 			utils.logging('Authentication failed!', self.console_print)
 			raise
 
-	def query_solmate(self, route, value, merged_config, mqtt):
+	def query_solmate(self, route, value, merged_config, mqtt = False):
 		# send request for the given route including error handling
 
 		try: 
