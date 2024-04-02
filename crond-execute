@@ -3,17 +3,68 @@
 # define the scripts path.
 # DO NOT DELETE or RENAME this variable
 SCRIPT_DIR="/config/shell/solmate"
+LAST_DIR_NAME=$(basename "$SCRIPT_DIR")
 
-#echo "${SCRIPT_DIR}/bin/activate"
-#echo "${SCRIPT_DIR}/solmate.py" "${SCRIPT_DIR}/.env"
-#exit
+count_to_kill() {
+  if [ -z "$1" ]; then
+    # Empty
+    count=0
+  else
+    # Not Empty
+    count=$(wc -l <<< "$1")
+  fi
+  # we only expect numbers
+  echo $count
+}
+
+kill_crond() {
+  # kill running instances of crond related to solmate after n seconds - if found
+  # waiting allows that other potential solmates (not the same ones) can start too
+  # as we are on a 15min track, that shpuld be enough
+  sleep 30 # seconds
+  TO_KILL=$(ps | grep crond | grep "$SCRIPT_DIR" | grep -v grep | sed 's/root.*$//' | sed 's/^[[:space:]]*//g' | grep -v '^$')
+  COUNT=$(count_to_kill "$TO_KILL")
+  if [ "$COUNT" -ne 0 ]; then
+    echo "killing $COUNT running crond"
+    while IFS= read -r LINE
+    do
+      kill -9 "$LINE"
+    done <<< "$TO_KILL"
+  fi
+}
+
+# get the list of running solmate processes for that solmate, one by each line
+# python, script path, no grep, remove everything after ID, remove all spaces, remove empty lines
+TO_KILL=$(ps | grep python | grep "$SCRIPT_DIR" | grep -v grep | sed 's/root.*$//' | sed 's/^[[:space:]]*//g' | grep -v '^$')
+COUNT=$(count_to_kill "$TO_KILL")
+
+# count running processes for that solmate - if any
+# and if exactly one, exit, no need to restart
+if [ "$COUNT" -eq 1 ]; then
+  # already running
+  echo "solmate script aready running"
+  kill_crond
+  exit
+fi
+
+# kill all running solmate processes for that solmate - if more than one is running
+if [ "$COUNT" -gt 1 ]; then
+  echo "killing $COUNT running solmate scripts"
+  while IFS= read -r LINE
+  do
+    kill -9 "$LINE"
+  done <<< "$TO_KILL"
+fi
 
 # activate the python virtual environment
+echo "activating python venv"
 source "${SCRIPT_DIR}/bin/activate"
 
 # run the script
 # python buffers before writing to the output, -u disables that behavior
+echo "starting solmate script"
 nohup python -u "${SCRIPT_DIR}/solmate.py" "${SCRIPT_DIR}/.env" >> "${SCRIPT_DIR}/nohup.log" 2>&1 &
+# for testing purposes only, comment the above and uncomment the below
+#nohup python -u "${SCRIPT_DIR}/test.py" >> "${SCRIPT_DIR}/nohup.log" 2>&1 &
 
-# kill the running instances of crond - if found
-pgrep -x "crond" | xargs -r kill -9
+kill_crond

@@ -7,6 +7,9 @@
    * [`solmate_check.py`](#solmate_checkpy)
    * [`solmate_env.py`](#solmate_envpy)
       * [Necessary Data in the '.env' File](#necessary-data-in-the-env-file)
+   * [Error Handling](#error-handling)
+   * [Known Routes](#known-routes)
+   * [Example Calls](#example-calls)
 
 ## solmate.py
 
@@ -93,6 +96,8 @@ Following parameters are intended either for development or testing but feel fre
 * Define `general_console_print` to enable logging using console additionally, syslog is always used.
 
 * Define `general_use_mqtt` to globally enable/disable mqtt, makes it easier for testing.
+
+Note that the environment variable `general_api_info` only needs to be present and set to true if one wants to request a list of known routes requested via the `get_api_info` route. You can see the output at [Known Routes](#known-routes). Note that EET sometimes "forgets" to add new routes to the API list, which is quite painful to reverse engineer. A difference can be seen like when opening a browser to set/request data on the Solmate and new items appear but are not listed in the API response. 
 
 ## Error Handling
 

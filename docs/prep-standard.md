@@ -9,6 +9,8 @@ This section is valid when running a dockerized HA or when using a separate host
     ```
     git clone --depth 1 https://github.com/mmattel/eet-solmate.git solmate
     git fetch --all --tags
+    git ls-files
+    ls -la
     ```
   * Use the following commands **for updates**:  
     Note that this will drop any changes made except configuration.  
@@ -18,6 +20,8 @@ This section is valid when running a dockerized HA or when using a separate host
     git stash -u && git stash drop
     git pull --rebase origin main
     git fetch --all --tags
+    git ls-files
+    ls -la
     ```
   * Switch to a stable solmate version (example v4.0.0):
     ```
