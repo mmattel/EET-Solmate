@@ -10,7 +10,6 @@ datetime
 ##json
 ##os
 ##queue
-##pkg_resources
 paho-mqtt
 python-dotenv
 semver
