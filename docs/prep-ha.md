@@ -91,15 +91,18 @@ or HA update/upgrade.
   * `python -m venv /config/shell/solmate`
   * `source /config/shell/solmate/bin/activate`  
   (this activates the venv for upcoming tasks)
-* Check that all required modules are installed.  
-     Run `python check_requirements.py` to see which are missing.  
-     You may need to cycle thru until all requirements are satisified.
-   * [Configure](script-components.md#solmate_envpy) the `.env` file.
+* Check that all required modules are installed.\
+  Run `python check_requirements.py` to see which are missing.\
+  You may need to cycle thru until all requirements are satisified.
+* Run the following command to UPDATE system packages:\
+  `python -m pip install --upgrade pip setuptools`\
+  If you do not run this command, depending on the Python version used, you may get an error about not being able to load a module.
 * As a venv "freezes" the python and library versions used, you must take care manually to upgrade it when there
   are new versions avialable.
   * The good thing is, that venv setups are reboot pesistent - means on reboot, you do not need to manually
     reinstall libraries.
   * Library upgrades can be done in the usual way for venv environments, for python check the documentation.
+* [Configure](script-components.md#solmate_envpy) the `.env` file.
 * Check that the two scripts `crond-execute` and `crond-prepare` are executable.\
   Type: `ls -la`, the crond-xxxx scripts should be printed green (respectively marked executable).
   If not run: `chmod +x <script-name>`.
