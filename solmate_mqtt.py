@@ -4,6 +4,8 @@ import time
 import signal
 import paho.mqtt.client as mqtt
 import solmate_utils as utils
+import solmate_ha_config as ha_config
+from paho.mqtt.packettypes import PacketTypes
 
 # 1.6.1 --> 2.0.0 https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html
 # we later can improve the <property> opject use when turning off mqttv3.x protocol use
@@ -11,16 +13,22 @@ import solmate_utils as utils
 
 class solmate_mqtt():
 
-	def __init__(self, merged_config, smws_conn, local, console_print):
+	def __init__(self, merged_config, smws_conn, disabled_api, console_print):
 		# initialize MQTT with parameters
 		self.merged_config=merged_config
 		self.smws_conn = smws_conn
-		self.local = local
 		self.console_print = console_print
+		self.disabled_api = disabled_api
 		self.connect_ok = None
 		self.signal_reason = 0
 		self.eet_reboot_in_progress = False
 		self.remember_info_response = None
+		self.remember_get_boost_response = None
+		self.real_names = None
+		self.fake_names = None
+		self.routes = None
+		self.configs = None
+		self.has_ha_config = False
 
 		utils.logging('Initializing the MQTT class.', self.console_print)
 
@@ -41,14 +49,15 @@ class solmate_mqtt():
 		#	eet/solmate/sensor/sensor_name/availability
 	
 		self.mqtt_button_topic = self.mqtt_prefix + '/button/' + self.mqtt_topic
-		self.mqtt_preset_topic = self.mqtt_prefix + '/preset/' + self.mqtt_topic
+		self.mqtt_number_topic = self.mqtt_prefix + '/number/' + self.mqtt_topic
 		self.mqtt_sensor_topic = self.mqtt_prefix + '/sensor/' + self.mqtt_topic
-		self.mqtt_switch_topic = self.mqtt_prefix + '/switch/' + self.mqtt_topic
+
 		self.mqtt_button_config_topic = self.mqtt_ha + '/button/' + self.mqtt_topic
-		self.mqtt_preset_config_topic = self.mqtt_ha + '/preset/' + self.mqtt_topic
+		self.mqtt_number_config_topic = self.mqtt_ha + '/number/' + self.mqtt_topic
 		self.mqtt_sensor_config_topic = self.mqtt_ha + '/sensor/' + self.mqtt_topic
-		self.mqtt_switch_config_topic = self.mqtt_ha + '/switch/' + self.mqtt_topic
+
 		self.mqtt_availability_topic = self.mqtt_prefix + '/sensor/' + self.mqtt_topic + '/availability'
+		self.mqtt_never_available_topic = self.mqtt_prefix + '/sensor/' + self.mqtt_topic + '/never_available'
 
 		# MQTT qos values (http://www.steves-internet-guide.com/understanding-mqtt-qos-levels-part-1/)
 		# QOS 0 – Once (not guaranteed)
@@ -62,7 +71,7 @@ class solmate_mqtt():
 		self.graceful_shutdown()
 
 	def signal_handler_sigterm(self, signum, frame):
-		# catch sigterm (liek from systemd) and process a graceful shutdown
+		# catch sigterm (like from systemd) and process a graceful shutdown
 		self.signal_reason = 2
 		self.graceful_shutdown()
 
@@ -71,9 +80,9 @@ class solmate_mqtt():
 		utils.logging('Initializing the MQTT client.', self.console_print)
 
 		# protocol versions available
-		# MQTTv31 = 3
+		# MQTTv31  = 3
 		# MQTTv311 = 4
-		# MQTTv5 = 5
+		# MQTTv5   = 5
 
 		self.mqttclient = mqtt.Client(
 			mqtt.CallbackAPIVersion.VERSION2,
@@ -131,35 +140,31 @@ class solmate_mqtt():
 
 		# update the home assistant auto config info
 		# each item needs its own publish
-		# name and config are arrays
-		# name contains the name for the config which is the full json string defining the message
-		names, configs, config_topics = self._construct_ha_config_message()
+		self.fake_names, self.real_names, self.routes, names, self.configs, config_topics = ha_config.construct_ha_config_message(self)
 
-		for i in range(0,len(names)):
+		for i in range(0,len(self.fake_names)):
+			#print(self.fake_names[i])
+			#print(self.real_names[i])
+			#print(self.routes[i])
 			#print(names[i])
-			#print(configs[i])
+			#print(self.configs[i])
 			#print(config_topics[i])
 			self.mqttclient.publish(
 				config_topics[i] + names[i] + '/config',
-				payload = configs[i],
+				payload = self.configs[i],
 				qos = self.mqtt_qos,
 				retain = True,
 				properties = None
 			)
 
-		# set the button to make it show up
-		self._update_button_command_topic('reboot', '')
+		self.has_ha_config = True
+		# lets do a correct subscription with all available command topics
+		self._do_mqtt_subscriptions()
 
-	def _do_mqtt_subscriptions(self):
-		# subscribe to the system/button/command/topic to recieve messages triggered by HA
-		# like reboot or shutdown. the callback is _on_message.
-		self.mqttclient.subscribe(
-			self.mqtt_button_topic + '/command/reboot',
-			options = None,
-			properties = None
-		)
+		# init the button to make it show up
+		self._init_button_command_topic('reboot', '')
 
-	def _update_button_command_topic(self, command, payload):
+	def _init_button_command_topic(self, command, payload):
 		# update the system command topic
 		#print(command)
 		#print(payload)
@@ -171,21 +176,44 @@ class solmate_mqtt():
 			properties = None
 		)
 
+	def _do_mqtt_subscriptions(self):
+		# subscribe to command topics to recieve messages triggered by HA
+		# like reboot or setting a value. the callback is _on_message.
+		# only run when ha_config has run, values needed come from this initialisation
+		# triggered by _on_connect and init_mqtt_client
+		# on_connect will trigger before ha_config has run, we need to cover this 
+		if self.has_ha_config == True:
+			for i in range(0,len(self.fake_names)):
+				if 'command_topic' in self.configs[i]:
+					y = json.loads(self.configs[i])
+					command_topic = y['command_topic']
+					#print(x)
+					self.mqttclient.subscribe(
+						command_topic,
+						options = None,
+						properties = None
+					)
+
 	def graceful_shutdown(self):
 		# the 'will_set' is not sent on graceful shutdown by design
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
 			utils.logging('\rShutting down MQTT gracefully.', self.console_print)
-			publish_result = self.mqttclient.publish(
-				self.mqtt_availability_topic,
-				payload = 'offline',
-				qos = self.mqtt_qos,
-				retain = True,
-				properties = None
-			)
-			publish_result.wait_for_publish() 
-			self.mqttclient.disconnect()
-			self.mqttclient.loop_stop()
+			# there can be cases where the connection is already gone.
+			try:
+				publish_result = self.mqttclient.publish(
+					self.mqtt_availability_topic,
+					payload = 'offline',
+					qos = self.mqtt_qos,
+					retain = True,
+					properties = None
+				)
+				publish_result.wait_for_publish() 
+				self.mqttclient.disconnect()
+				self.mqttclient.loop_stop()
+			except Exception:
+				pass
+
 			self.connect_ok = False
 			# 0 ... self.signal_reason defaults to 0, means no signal was used
 			# 1 ... sigint (ctrl-c)
@@ -199,9 +227,6 @@ class solmate_mqtt():
 				# the program was politely asked to terminate, we log and grant that request.
 				utils.logging('\rTerminated on request.', self.console_print)
 				sys.exit()
-		else:
-			self.mqttclient.loop_stop()
-			sys.exit()
 
 	def _on_connect(self, client, userdata, flags, reason_code, properties = None):
 		# http://www.steves-internet-guide.com/mqtt-python-callbacks/
@@ -213,63 +238,135 @@ class solmate_mqtt():
 				qos = self.mqtt_qos,
 				retain = True
 			)
+			client.publish(
+				self.mqtt_never_available_topic,
+				payload = 'offline',
+				qos = self.mqtt_qos,
+				retain = True
+			)
 			self.connect_ok = True
 			utils.logging('MQTT is connected and running.', self.console_print)
-			# we should always subscribe from on_connect callback to be sure
-			# the subscription(s) are persisted across reconnections like client.subscribe("$SYS/#")
-			# it is not necessary that the topic is already available.
+			# we should always subscribe via on_connect callback to be sure
+			# the subscriptions are persisted across reconnections like client.subscribe("$SYS/#")
+			# technically it is not necessary that the topic is already available.
+			# will also trigger on disconnect and reconnect
 			self._do_mqtt_subscriptions()
+
 		else:
+			switcher = {
+				1: 'incorrect protocol version',
+				2: 'invalid client identifier',
+				3: 'server unavailable',
+				4: 'bad username or password',
+				5: 'not authorised',
+			}
 			self.connect_ok = False
-			utils.logging('MQTT connection refused: ' + str(reason_code), self.console_print)
-			self.graceful_shutdown()
+			utils.logging('MQTT connection refused - ' + switcher.get(rc, 'unknown response'), self.console_print)
+			self.mqttclient.loop_stop()
 
 	def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties = None):
 		if reason_code != 0:
 			# https://github.com/eclipse/paho.mqtt.python/blob/master/src/paho/mqtt/reasoncodes.py
-			utils.logging('MQTT disconnected: ' + str(reason_code.getName()), self.console_print)
+			# https://github.com/eclipse/paho.mqtt.python/issues/827
+			utils.logging('MQTT disconnected: ' 
+				+ str(reason_code.getName())
+				+ ', packet: '
+				+ str(PacketTypes.Names[reason_code.packetType]),
+				self.console_print)
 
 	def _on_publish(self, client, userdata, message, reason_codes, properties = None):
 		print(f'MQTT messages published: {message}')
 
 	def _on_message(self, client, userdata, message):
 		# triggered on published messages when subscribed
-		# we can add here any actions based on subscribed topics
-		# atm, manage to reboot the solmate
-		# 'shutdown' would be possible if a topic/subscription is created
+		# the payload is binary and must be decoded first
+		# an empty string is hardcoded with two consecutive double quotes that needs to get removed
+		value = str(message.payload.decode('utf-8').replace('""', ''))
+		topic = message.topic
+
 		#print('MQTT retain: ' + str(message.retain))
-		#print("message: ", message.topic + ': ' + str(message.payload.decode('utf-8')))
-		if message.topic.endswith('command/reboot'):
-			self._manage_reboot(str(message.payload.decode('utf-8')).strip('\"'))
+		#print("message: ", message.topic + ': ' + value)
+
+		if value:
+			# only proceed if there is a value, empty is not valid
+			# reboot needs special treatment
+			if topic.endswith('command/reboot'):
+				# if triggered, the value coming from HA is 'doit'
+				self._manage_reboot(value)
+				return
+
+			# add the result to the queue, processed in solmate.py
+			# IMPORTANT: values are casted to integer defined by the routes
+			# check results from the solmate API if a route has a string = special treatment
+
+			write_dict = {}
+			boost = False
+
+			# 'set_boost_injection' needs special treatment, we need to send time and wattage together!
+			if self.remember_get_boost_response:
+				boost_dict = {}
+				for i in range(0,len(self.routes)):
+					if self.routes[i] and 'set_boost_injection' in self.routes[i]:
+						boost_value = self.remember_get_boost_response[self.fake_names[i]]
+						write_dict[self.real_names[i]] = boost_value
+					boost = True
+
+			# 'set_user_xxx' (injection) is fine, we can process normally one by another
+			for i in range(0,len(self.fake_names)):
+				if topic in self.configs[i]:
+					#print(self.fake_names[i])
+					#print(self.real_names[i])
+					#print(self.routes[i])
+					#print(self.configs[i])
+					if boost:
+						# we cant rely on 'set_boost_injection', only on boost
+						write_dict.update({self.real_names[i]: int(value)})
+						#print(self.routes[i], write_dict)
+						utils.mqtt_queue.put((self.routes[i], write_dict))
+					else:
+						if not 'set_boost_injection' in self.routes[i]:
+							write_dict = {}
+							write_dict[self.real_names[i]] = int(value)
+							#print(self.routes[i], write_dict)
+							utils.mqtt_queue.put((self.routes[i], write_dict))
+					break
 
 	def _manage_reboot(self, message):
 		# exit if:
 		# - not connected to the local solmate or
 		# - there is already a reboot in progress
-		if (not self.local) or self.eet_reboot_in_progress:
+		if (not self.disabled_api['local']) or self.eet_reboot_in_progress:
 			return
 
+		# we have subscribed to the topic but the message can be empty
+		# this happens on initialisation of _on_message
 		if message:
-			# we have subscribed to a topic but the message can be empty
-			# this happens on initialisation of _on_message
 			self.eet_reboot_in_progress = True
 			self.send_sensor_update_message(self.remember_info_response, 'info')
-			utils.mqueue.put('reboot')
+			# new queue element = (route, key, value)
+			utils.mqtt_queue.put(('shutdown', {'shut_reboot': 'reboot'}))
 			utils.logging('Initializing SolMate Reboot.', self.console_print)
 
 	def send_sensor_update_message(self, response, endpoint):
-		# only if it is the 'info' endpoint
-		# add additional info that is not present in the original to the response
+		# send a mqtt update message, the format is fixed
+		# remember some settings necessary for other tasks
 		if endpoint == 'info':
+			# add additional info that is not present in the original response
 			# remember the response to update the last message when rebooting
 			self.remember_info_response = response
 			# fake a operating_state into the response if not present
 			response['operating_state'] = 'rebooting' if self.eet_reboot_in_progress else 'online'
 			# fake a connected_to into the response if not present
-			response['connected_to'] = 'local' if self.local else 'server'
+			response['connected_to'] = 'local' if self.disabled_api['local'] else 'server'
 
+		if endpoint == 'get_boost':
+			# remember the response to update the last message when rebooting
+			self.remember_get_boost_response = response
+
+		# note the endpoint: it MUST match one defined in 'ha_config.construct_ha_config_message'
+		# the endpoint groups entities together so they can be updated at once
+		# the sort order is not relevant
 		update = self._construct_update_message(response)
-		# send a mqtt update message, the format is fixed
 		self.mqttclient.publish(
 			self.mqtt_sensor_topic + '/' + endpoint,
 			payload = update,
@@ -282,335 +379,14 @@ class solmate_mqtt():
 		# do the cleanup after successful rebooting
 		utils.logging('SolMate has Rebooted.', self.console_print)
 		utils.logging('Back to normal operation.', self.console_print)
-		self._update_button_command_topic('reboot', '')
+		self._init_button_command_topic('reboot', '')
 		self.eet_reboot_in_progress = False
 		self.send_sensor_update_message(self.remember_info_response, 'info')
 
 	def _construct_update_message(self, response):
 		# construct an update message
 		# note that whatever keys in the response are present, they are processed
-		# all possible keys must be defined in '_construct_ha_config_message' upfront
-
+		# we need to replace real keys from teh API with fake keys defined in the construct message
 		final = json.dumps(response)
 		#print(json.dumps(response, indent=4))
-
 		return final
-
-	def _construct_ha_config_message(self):
-
-		# it is EXTREMELY important to have the correct component set so that HA does the correct thing
-		#
-		# <discovery_prefix>/<component>/[<node_id>/]<object_id>/config|availability|state
-		# self.mqtt_config_topic + names[i] + '/config'
-		# https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery
-		# https://www.home-assistant.io/integrations/sensor.mqtt/
-		# https://www.home-assistant.io/integrations/sensor/#device-class
-		# https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes
-		# https://www.home-assistant.io/docs/configuration/customizing-devices/#icon
-
-		names = [''] * 13
-		configs = [''] * 13
-		config_topics = [''] * 13
-
-		# note that device_values must be populated
-		device_values = {}
-		device_values['identifiers'] = ['eet_solmate']
-		device_values['name'] = 'SOLMATE'
-		device_values['model'] = 'SOLMATE G'
-		device_values['manufacturer'] = 'EET Energy'
-
-		live = '/live'
-		live_n = 'live_'
-		info = '/info'
-		info_n = 'info_'
-		button = '/button'
-		button_n = 'button_'
-		preset = '/preset'
-		preset_n = 'preset_'
-		switch = '/switch'
-		switch_n = 'switch_'
-		dictionaries = {}
-
-		# collection of live data. queried in relative short intervals
-		i = 0
-		n = 'timestamp'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'friendly_name': name,
-			# give the entiy a better identifyable name for the UI (timestamp is multiple present)
-			# dont use a timestamp class, we manually generate it and manually define the icon
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ value_json.' + n + " | as_timestamp() | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
-			'availability_topic': self.mqtt_availability_topic,
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'device': device_values,
-			'icon': 'mdi:progress-clock',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-		# json_formatted_str = json.dumps(dictionaries[name], indent=2, ensure_ascii = False)
-		# print(json_formatted_str)
-
-		i += 1
-		n = 'pv_power'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'device_class': 'power',
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ (value_json.' + n + ' | float(0)) | round(1) }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'unit_of_measurement': 'W',
-			'device': device_values,
-			'icon': 'mdi:solar-power-variant-outline',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n = 'inject_power'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'device_class': 'power',
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ (value_json.' + n + ' | float(0)) | round(1) }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'unit_of_measurement': 'W',
-			'device': device_values,
-			'icon': 'mdi:transmission-tower-import',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n = 'battery_flow'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'device_class': 'power',
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ (value_json.' + n + ' | float(0)) | round(1) }}',
-			'unique_id':self. mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'unit_of_measurement': 'W',
-			'device': device_values,
-			'icon': 'mdi:home-battery-outline',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n = 'battery_state'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ (((value_json.' + n + ' | float(0)) * 100) | round(1)) }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'unit_of_measurement': '%',
-			'device': device_values,
-			'icon': 'mdi:battery-high',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n = 'temperature'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'device_class': 'temperature',
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ (value_json.' + n + ' | float(0)) | round(1) }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'unit_of_measurement': '°C',
-			'device': device_values,
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n = 'mppOutI'
-		name = live_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'device_class': 'current',
-			'state_topic': self.mqtt_sensor_topic + live,
-			'value_template': '{{ (value_json.' + n + ' | float(0)) | round(2) }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'device': device_values,
-			'unit_of_measurement': 'A',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		# collection of info data like SW version. queried like once a day 
-		i += 1
-		n = 'version'
-		name = info_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			# no device class here as it is a string
-			'state_topic': self.mqtt_sensor_topic + info,
-			'value_template': '{{ value_json.' + n + ' | version }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'device': device_values,
-			'icon': 'mdi:text-box-outline',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n= 'ip'
-		name = info_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			# no device class here as it is a string
-			'state_topic': self.mqtt_sensor_topic + info,
-			'value_template': '{{ value_json.' + n + ' }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'device': device_values,
-			'icon': 'mdi:ip-outline',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n = 'timestamp'
-		name = info_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'friendly_name': name,
-			# give the entiy a better identifyable name for the UI (timestamp is multiple present)
-			# dont use a timestamp class, we manually generate it and manually define the icon
-			'state_topic': self.mqtt_sensor_topic + info,
-			'value_template': '{{ value_json.' + n + " | as_timestamp() | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
-			'availability_topic': self.mqtt_availability_topic,
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'device': device_values,
-			'icon': 'mdi:clock-time-ten',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n= 'operating_state'
-		name = info_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			# no device class here as it is a string
-			'state_topic': self.mqtt_sensor_topic + info,
-			'value_template': '{{ value_json.' + n + ' }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'device': device_values,
-			'icon': 'mdi:power-settings',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		i += 1
-		n= 'connected_to'
-		name = info_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_sensor_config_topic
-		dictionaries[name] = {
-			'name': n,
-			# no device class here as it is a string
-			'state_topic': self.mqtt_sensor_topic + info,
-			'value_template': '{{ value_json.' + n + ' }}',
-			'unique_id': self.mqtt_topic + '_sensor_' + name,
-			'availability_topic': self.mqtt_availability_topic,
-			'device': device_values,
-			'icon': 'mdi:lan-connect',
-			'retain': True
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		# collection of system switches like reboot
-		# add all switches/buttons here to be part of the system hierarchy
-		i += 1
-		n = 'reboot'
-		name = button_n + n
-		names[i] = '/' + name
-		config_topics[i] = self.mqtt_button_config_topic
-		dictionaries[name] = {
-			'name': n,
-			'friendly_name': name,
-			'command_topic': self.mqtt_button_topic + '/command/' + n,
-			'availability_topic': self.mqtt_availability_topic,
-			'unique_id': self.mqtt_topic + '_' + name,
-			'value_template': '{{ value_json.' + n + ' }}',
-			'device': device_values,
-			'entity_category': 'config',
-			'device_class': 'restart',
-			'payload_press': 'doit',
-			'qos': self.mqtt_qos,
-			'retain': False
-		}
-		configs[i] = json.dumps(dictionaries[name])
-
-		# collection of presets like min/maximum_injection and minimum_battery_percentage etc
-		# add all presets here to be part of the system hierarchy
-#		i += 1
-#		n = 'user_minimum_injection'
-#		name = preset_n + n
-#		names[i] = '/' + name
-#		config_topics[i] = self.mqtt_preset_config_topic
-#		dictionaries[name] = {
-#			'name': n,
-#			# the range is between 0 and 800, need to check ho to limit
-#			'value_template': '{{ (value_json.' + n + ' | int ) }}',
-#			'unique_id': self.mqtt_topic + '_sensor_' + name,
-#			'availability_topic': self.mqtt_availability_topic,
-#			'unit_of_measurement': '%',
-#			'device': device_values,
-#			'icon': 'mdi:battery-high',
-#			'retain': True
-#
-#			'friendly_name': name,
-#			'command_topic': self.mqtt_preset_topic + '/preset/' + n,
-#			'availability_topic': self.mqtt_availability_topic,
-#			'unique_id': self.mqtt_topic + '_' + name,
-#			'value_template': '{{ value_json.' + n + ' }}',
-#			'device': device_values,
-#			'entity_category': 'config',
-#			'device_class': 'restart',
-#			'payload_press': 'doit',
-#			'qos': self.mqtt_qos,
-#			'retain': False
-#		}
-#		configs[i] = json.dumps(dictionaries[name])
-
-		return names, configs, config_topics
