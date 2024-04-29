@@ -14,8 +14,8 @@ A Python script to read data from a EET SolMate and send it to a MQTT broker for
    * [Home Assistant](#home-assistant)
       * [MQTT Sensors](#mqtt-sensors)
       * [Energy Dashboard](#energy-dashboard)
-      * [Total Solar Production](#total-solar-production)
       * [Template Sensors](#template-sensors)
+      * [Total Solar Injection](#total-solar-injection)
 
 ## General Info
 
@@ -101,24 +101,26 @@ WantedBy=multi-user.target
 
 When everything went fine, you will see the Solmate as device in MQTT.
 
+Sensor names are prefixed with an abbreviation of the route for ease of identification. This makes it much easier to identify _where_ a sensor comes from and group it accordingly. Examples: `live_pv_power` or `get_injection_user_maximum_injection`.
+
 Most of the sensors shown originate from the Solmate but not all. The following sensors are created artificially and add information about the Solmate connected:
 
-* `connected_to`  
+* `info_connected_to`  
   This shows where the solmate is connected to, either `local` or `server`.
-* `operating_state`  
+* `info_operating_state`  
   This either shows `online` or `rebooting`
-* `timestamp`  
+* `info_timestamp`  
   There are two timestamps shown, for details see below.
-* `reboot`  
+* `button_reboot`  
   This is a button you can click to reboot the Solmate. Note that this is only functional if the Solmate
   is connected locally. Though clickable, it will not work when connected to the server as the server does
-  currently not provide the API. As an easy reminder where connected to, check `connected_to`.
+  currently not provide the API. As an easy reminder where connected to, check `info_connected_to`.
 
-The two `timestamps` are by intention. The differentiate the following:
+The two `x_timestamps` are by intention. The differentiate the following:
 
-* The first timestamp is updated once every `timer_live` query interval.
-* The other timestamp is updated once every nightly scheduled query at 23:45  
-  Here only the IP address and SW version are queried. As these values update quite rarely,
+* `live_timestamp` is updated once every `timer_live` query interval.
+* `info_timestamp` is artificial and updated once every nightly scheduled query at 23:45\
+  Here only info stuff is queried. As these values update quite rarely,
   there is no need to do that more often. 
 
 Note that both timers are updated on restart. Knowing this you can see if there was a program restart due to error handling if the second timer is not at the scheduled interval.
@@ -127,29 +129,11 @@ Note that both timers are updated on restart. Knowing this you can see if there 
 
 At the time of writing, the HA energy dashboard has no capability to properly display ANY system where the battery is the central point and only carged by the solar panel respectively is the source of injecting energy. This is not EET specific. A [feature request](https://community.home-assistant.io/t/energy-flow-diagram-electric-power-update-needed/619621) has been filed. You can add your vote if you want to push this.
 
-### Total Solar Production
-
-The Solmate does not provide an aggregated total solar production value. This needs to be added in HA manually.
-
-If not already done, add a new Integration: [Riemann sum integral](https://www.home-assistant.io/integrations/integration/).
-
-The following settings need to be made, adapt them according your needs:
-```
-state_class:         total
-source:              sensor.solmate_pv_power
-unit_of_measurement: kWh
-device_class:        energy
-icon:                mdi:solar-power
-friendly_name:       Solar Production
-method:              left
-round:               2
-unit_prefix:         k
-unit_time:           h
-```
-
 ### Template Sensors
 
-These are template examples you can use for further processing when you need to split a single +/- value into variables that can contain only a positive value or zero.
+These are template examples you can use for further processing when you need to split a single +/- value into variables that can contain only a positive value or zero or when using a Riemann Integration (see below). As suggestion, use the same value prefix in unique_id as defined in `mqtt_topic` from the `.env` file.
+
+Note to reboot HA to make template sensors available.
    
 ```
   # virtual EET Solmate sensors
@@ -172,5 +156,40 @@ These are template examples you can use for further processing when you need to 
       device_class: 'power'
       icon: 'mdi:home-battery-outline'
       state: >
-        {{ ([ 0, states('sensor.solmate_inject_power') | float(0) ] | max) }}
+        {{ ([ 0, states('sensor.solmate_battery_flow') | float(0) ] | max) }}
+
+    # injection power (to be independent of entity name changes) to be used in riemann integral
+    # production = positive values(inject_power) or 0
+    - name: 'Solmate faked Injection Power'
+      unique_id: 'solmate_faked_inject_power'
+      unit_of_measurement: 'W'
+      device_class: 'power'
+      icon: 'mdi:transmission-tower-import'
+      state: >
+        {{ ([ 0, states('sensor.solmate_live_inject_power') | float(0) ] | max) }}
+
+```
+
+### Total Solar Injection
+
+The Solmate does not provide an aggregated total solar injection value. This needs to be added in HA manually.
+
+If not already done, add a new Integration: [Riemann sum integral](https://www.home-assistant.io/integrations/integration/).
+The "bad" thing on RI is, if there is a change in the underlaying source which you cant configure anymore, you loose the sum/history and you start counting from 0 because you cant preset it. A template sensor avoids this situation. Alternatively edit the `config/.storage/core.config_entries` file and replace the source (...).
+
+The following settings need to be made, adapt them according your needs. Either do this by adding a yaml config or directly via the Riemann Integration GUI:
+
+```yaml
+sensor:
+  - platform:            integration
+    state_class:         total
+    source:              sensor.solmate_faked_injection_power
+    unit_of_measurement: kWh
+    device_class:        energy
+    icon:                mdi:chart-histogram
+    friendly_name:       Solmate Total Injection
+    method:              left
+    round:               2
+    unit_prefix:         k
+    unit_time:           h
 ```

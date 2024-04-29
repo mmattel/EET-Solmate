@@ -30,7 +30,7 @@ def print_request_response(route, response):
 	else:
 		print(colored(route + ': ', 'red') + str(response))
 
-def query_once_a_day(smws_conn, route, data, merged_config, mqtt, smws, print_response, console_print, endpoint):
+def query_once_a_day(smws_conn, route, data, merged_config, mqtt, print_response, console_print, endpoint):
 	# send request but only when triggered by the scheduler
 	# use only for requests with routes that change rarely, more requests can be added
 	utils.logging('Once a day queries called by scheduler.', console_print)
@@ -116,6 +116,7 @@ def main():
 		utils.restart_program(console_print)
 
 	# check if we should *only* print the current API info response
+	# eases debugging the current available routes
 	if 'general_api_info' in merged_config.keys():
 		# if the api_info key is present check for True:
 		if merged_config['general_api_info'] == 'True':
@@ -124,9 +125,16 @@ def main():
 			print(json.dumps(response, ensure_ascii=False, indent=2, separators=(',', ': ')))
 			sys.exit()
 
+	# get all disabled api routes
+	disabled_api = {}
+	# the name is 1:1 from the webUI, true | false
+	sun2plugHasBoostInjection = smws_conn.check_route('get_injection_settings', {})
+	disabled_api.update({'sun2plugHasBoostInjection': sun2plugHasBoostInjection})
+	disabled_api.update({'local': local})
+
 	if use_mqtt:
 		# initialize and start mqtt
-		mqtt = smmqtt.solmate_mqtt(merged_config, smws_conn, local, console_print)
+		mqtt = smmqtt.solmate_mqtt(merged_config, smws_conn, disabled_api, console_print)
 		mqtt.init_mqtt_client()
 		# note that signal handling must be done after initializing mqtt
 		# else the handler cant gracefully shutdown mqtt.
@@ -141,9 +149,9 @@ def main():
 	else:
 		mqtt = False
 
-	# start a scheduler for once-a-day requests like the 'get_solmate_info',
+	# get values from the 'get_solmate_info' route
+	# start a scheduler for once-a-day requests
 	# this content changes rarely, most likely the version number from time to time.
-	# arguments: conn, route, data, merged_config, mqtt, smws, print_response
 	schedule.every().day.at('23:45').do(
 			query_once_a_day,
 			smws_conn=smws_conn,
@@ -151,7 +159,6 @@ def main():
 			data={},
 			merged_config=merged_config,
 			mqtt=mqtt,
-			smws=smws,
 			print_response=print_response,
 			console_print=console_print,
 			endpoint='info'
@@ -163,31 +170,60 @@ def main():
 	while True:
 	# loop to continuosly request live values or process commands from mqtt
 
-		if mqtt and utils.mqueue.qsize() != 0:
-			# if we have a message from mqtt because a button was pressed like reboot
-			message = utils.mqueue.get()
-			# here we can distinguish different messages to process.
-			# 'shutdown' would be possible if catched by mqtt
-			if message == 'reboot':
-				response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
-				if response != False:
+		# only if mqtt is enabled
+		# process all write requests from the queue initiated by mqtt
+		if mqtt:
+			while utils.mqtt_queue.qsize() != 0:
+				# we have a message from mqtt because a value change or a button being pressed
+				# data can be a multi entry in the dictionary, but for e.g. shutdown it is only one
+				route, data = utils.mqtt_queue.get()
+				key, value = list(data.items())[0]
+
+				# reboot and shutdown use the same route/key and need an artificial mqtt entry
+				# special handling for pressing the reboot button
+				# we could also add a shutdown button to shut down the solmate - not implemented so far
+				if route == 'shutdown' and value == 'reboot':
+					response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
+					if response != False:
+						# if there is a response from the reboot command, print it
+						utils.logging(str(response), console_print)
+					# this gets only processed if websocket stays connected despite the reboot command
+					# which would drop it (reboot was not accepted), better safe than sorry
+					utils.timer_wait(merged_config, 'timer_reboot', console_print, False, True)
+					mqtt.set_operating_state_normal()
+
+				response = smws_conn.query_solmate(route, data, merged_config, mqtt)
+				if response == False:
+					#print(route, data, '\n')
 					# if there is a response from the reboot command, print it
 					utils.logging(str(response), console_print)
-				# this gets only processed if websocket stays connected despite the reboot command
-				# which would drop it (reboot was not accepted), better safe than sorry
-				utils.timer_wait(merged_config, 'timer_reboot', console_print, False, True)
-				mqtt.set_operating_state_normal()
+					#print('\n')
 
-		# query_solmate(route, value, merged_config, mqtt)
+		# get values from the 'live_values' route
 		response = smws_conn.query_solmate('live_values', {}, merged_config, mqtt)
-
 		if response != False:
 			if print_response:
 				print_request_response('live_values', response)
 			if mqtt:
 				mqtt.send_sensor_update_message(response, 'live')
 
-		# check if there is a pending job due
+		# get values from the 'get_injection_settings' route
+		response = smws_conn.query_solmate('get_injection_settings', {}, merged_config, mqtt)
+		if response != False:
+			if print_response:
+				print_request_response('get_injection_settings', response)
+			if mqtt:
+				mqtt.send_sensor_update_message(response, 'get_injection')
+
+		# get values from the 'get_boost_injection' route
+		response = smws_conn.query_solmate('get_boost_injection', {}, merged_config, mqtt)
+		if response != False:
+			if print_response:
+				print_request_response('get_boost_injection', response)
+			if mqtt:
+				mqtt.send_sensor_update_message(response, 'get_boost')
+
+		# check if there is a pending job due like the 'get_solmate_info'
 		schedule.run_pending()
 
 		# wait for the next round (async, non blocking for any other running background processes)

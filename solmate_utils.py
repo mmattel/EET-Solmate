@@ -7,8 +7,11 @@ import time
 
 # functions here are provided for general availability
 
-# create a new queue which is used from all importing modules
-mqueue = queue.Queue()
+# create a new queue which can be accessed from all importing modules
+# we use it for the communication between mqtt and the main loop
+# each element contains a tuple (route, key, value), set by mqtt on message recieved
+# this defines updates to be sent to solmate 
+mqtt_queue = queue.Queue()
 
 # this is just a preparation if the the deprecation would pop up, but has currently NO
 # effect and uses the default method of asyncio.get_event_loop()
@@ -55,8 +58,8 @@ async def _async_timer(timer_value):
 def timer_wait(merged_config, timer_name, console_print, add_log = True, mqtt_command = False):
 	# wait the number of seconds passed via the name as argument
 
-	# mqueue is defined on the module level
-	global mqueue
+	# mqtt_queue is defined on the module level
+	global mqtt_queue
 
 	if add_log:
 		# log at all, but decide where
@@ -70,9 +73,9 @@ def timer_wait(merged_config, timer_name, console_print, add_log = True, mqtt_co
 	for x in range(merged_config[timer_name] * 2):
 		# check if the queue has an item to process. in case exit the for loop
 		# but only if there is no processing of an mqtt command like reboot
-		# there we have already a mqueue item and we must pass the waiting time 
+		# there we have already a mqtt_queue item and we must pass the waiting time 
 		if mqtt_command == False:
-			if mqueue.qsize() != 0:
+			if mqtt_queue.qsize() != 0:
 				break
 		create_async_loop().run_until_complete(_async_timer(0.5))
 

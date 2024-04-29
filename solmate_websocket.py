@@ -58,7 +58,7 @@ class connect_to_solmate:
 			utils.logging('Websockets error: ' + str(err) or 'Empty error string returned.', self.console_print)
 			raise
 
-	async def _send_api_request(self, data):
+	async def _send_api_request(self, data, silent = False):
 		# send an api request with the given data and return response data.
 		try:
 			self.message_id += 1
@@ -88,20 +88,20 @@ class connect_to_solmate:
 		elif 'error' in response:
 			# contains the original websocket error data
 			err = 'Response: ' + str(response['error'])
-			utils.logging(str(err), self.console_print)
+			if not silent:
+				utils.logging(str(err), self.console_print)
 			raise Exception(err)
 		else:
 			err = 'The response did not contain any useful data.'
 			utils.logging(str(err), self.console_print)
 			raise Exception(err)
 
-	def ws_request(self, route, data):
+	def ws_request(self, route, data, silent = False):
 		# send request for the given route without error handling
-
 		try:
 			response = utils.create_async_loop().run_until_complete(
 				self._send_api_request(
-					{'id': self.message_id, 'route': route, 'data': data}
+					{'id': self.message_id, 'route': route, 'data': data}, silent
 				)
 			)
 			return response
@@ -177,11 +177,21 @@ class connect_to_solmate:
 			utils.logging('Authentication failed!', self.console_print)
 			raise
 
-	def query_solmate(self, route, value, merged_config, mqtt = False):
+	def check_route(self, route, data):
+		# send request for the given route including error handling
+
+		try:
+			self.ws_request(route, data, silent = True)
+			return True
+
+		except:
+			return False
+
+	def query_solmate(self, route, data, merged_config, mqtt = False):
 		# send request for the given route including error handling
 
 		try: 
-			response = self.ws_request(route, value)
+			response = self.ws_request(route, data)
 			# request was successful, reset counter
 			self.count_before_restart = 0
 			return response
@@ -197,7 +207,7 @@ class connect_to_solmate:
 			# depending on other exceptions do
 
 			if len(self.err_kwds & set(str(err).replace(',', '').replace("'", '').split())) == len(self.err_kwds):
-				# inexistent route
+				# inexistent route (NotImplemetedError)
 				# check if both keywords exist in the error message
 				# in case, stop script if the endpoint does not exists, continue makes no sense
 				# logging of which inexistent route was already done in '_send_api_request'

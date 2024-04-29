@@ -9,7 +9,6 @@
       * [Necessary Data in the '.env' File](#necessary-data-in-the-env-file)
    * [Error Handling](#error-handling)
    * [Known Routes](#known-routes)
-   * [Example Calls](#example-calls)
 
 ## solmate.py
 
@@ -123,65 +122,32 @@ This is informational only and possibly not complete. All routes have as data `{
 3. `live_values`
 4. `get_user_settings`
 5. `get_grid_mode`
-6. `get_injection_settings`  
-  Note that you must provide proper data as attribute, see `get_api_info` output for more details.
-7. `logs`  
+6. `get_injection_settings`\
+  Note that you must provide proper data as attribute, see `get_api_info` output for more details.\
+  Note that there are also writable routes to set injection settings which are not explicitly mentioned here, see `get_api_info` for more details.
+
+7. `logs`\
   Note that you must provide proper data as attribute, see `get_api_info` output for more details.
 9. `shutdown`  
-  This route has a data attribute like `{'shut_reboot': 'reboot'}`
+  This route has the following data attributes\
+  `{'shut_reboot': 'reboot'}`  (used)\
+  `{'shut_reboot': 'shutdown'}` (not used)
 10. `set_system_time`  
   This route has a data attribute like `{datetime: n}` where  
   `const e = On()()`, `n = e.utc().format(t)` and `t = "YYYY-MM-DDTHH:mm:ss"` (using javascript as base)
-
-## Example Calls
-
-These are examples if you want to adapt the code on your own.
-
-```
-	# example data when using the logs route
-	logs_data = {"timeframes": [
-						{
-							"start": "2023-08-18T10:00:00",
-							"end": "2023-08-18T23:59:59",
-							"resolution": 4
-						}
-					]
-				}
-
-	# get a solmate logs, call eg. one a day
-	# query_solmate(route, value, timer_config, mqtt)
-	response = smc_conn.query_solmate('logs', logs_data, timer_config, mqtt)
-	if response != False:
-		if not 'timestamp' in response:
-			# fake a timestamp into the response if not present
-			response['timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-		# add mqtt or other stuff here
-		if printing:
-			print_request_response('logs', response)
-```
-
-```
-	# get the solmate info, as often you call the block
-	# query_solmate(route, value, timer_config, mqtt)
-	response = smc_conn.query_solmate(route, data, timer_config, mqtt)
-	if response != False:
-		if not 'timestamp' in response:
-			# fake a timestamp into the response if not present
-			response['timestamp'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-		# add mqtt or other stuff here
-		if printing:
-			print_request_response(route, response)
-```
-
-```
-	# loop to continuosly request live values
-	while True:
-		# query_solmate(route, value, timer_config, mqtt)
-		response = smc.query_solmate('live_values', {}, timer_config, mqtt)
-		if response != False:
-			# add mqtt or other stuff here
-			if printing:
-				print_request_response(route, response)
-			# and wait for the next round
-			smc.timer_wait(timer_config, 'timer_live', False)
-```
+11. `get_boost_injection`\
+  This route is not officially documented (part of the get_api_info) but available via the browser.
+    ```yaml
+    {
+      "set_time": 0,
+      "remaining_time": 0,
+      "set_wattage": 500.0,
+      "actual_wattage": 112.59259033203125
+    }
+    ```
+12. `set_boost_injection`\
+  The opposite of `set_boost_injection` but with two key that MUST be written in one request!\
+  Note that EET's original webUI implementation limits the wattage to 500 (I set the limit to 800)
+    ```yaml
+    {"time": 600, wattage: 500}
+    ``` 
