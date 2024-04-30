@@ -1,5 +1,16 @@
 # Breaking Changes
 
+* When upgrading from release 4.x to 5.0, some important steps need to be performed in the given sequence:
+  * Stop the automatic start of the Solmate script in HA and reboot - it will not start when HA comes up or stop the script when using systemd.
+  * Remove all MQTT entries belonging to the Solmate, this includes:
+    * All homassistant autoconfig data.
+    * All data that gets updated regulary.
+  * Update all files (there are NEW and changed ones!) and reenable automatic script start.\
+    All info should now be available in MQTT (HA device and MQTT explorer)
+  * Restart HA
+  * Reassign the new entities when e.g. used in gauges etc.
+  * Important, read the docs if you have used a Riemann Integration to build up sums. There is a note how to update the RI source to a new entity.
+
 * When upgrading from release 3.0 to 4.x, some important steps need to be performed in the given sequence:
   * Upgrade / download all files from the repo, there are NEW and changed ones!
   * There are new dependencies. Check with `check-requirememts.py` if all of them are satisfied.

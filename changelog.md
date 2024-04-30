@@ -1,6 +1,13 @@
 # Changelog
 
-* With version 4 the following changes have been implemented.
+* With version 5, the following changes have been implemented:
+  * Enable some values to be set.
+  * Values in HA are now grouped by meaning:\
+    **Sensor**, **Config** and **Diagnose**
+  * Entities got new names --> **BREAKING**
+  * A lot of code improvements and fixes.
+  * For more details see the release notes in the tag.
+* With version 4, the following changes have been implemented:
   * The documentation got revised.
   * Updating some code to be prepared for possible changes in Python and library releases.
   * When using HAOS:
@@ -9,7 +16,7 @@
       - Adding bash scripts to allow integration via HA shell scripts.
       - Startup and running logs are written into a file as this is not integrateable into HA.
   
-* With version 3, the following changes have been implemented.  
+* With version 3, the following changes have been implemented:
   * The MQTT code has been updated to fully use the capablities of the `paho-mqtt` v2 library.
   * A check routine has been added if the v2 library has been installed. The script ends if not.
   * When re-running the `check-requirements.py` script, you will get notified about the possibility
