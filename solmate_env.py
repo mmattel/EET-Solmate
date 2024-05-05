@@ -28,19 +28,26 @@ def process_env():
 			utils.logging('No \'.env\' file found, expecting envvars.', True)
 
 	full_config = {
-		**dotenv_values(env_file),  # load env variables from file, if exist
-		**os.environ,               # override loaded values with environment variables if exists
+		**dotenv_values(env_file),	# load env variables from file, if exist
+		**os.environ				# override loaded values with environment variables if exists
 	}
 
-	# only get the xyz_ values from the full dict as it is
-	mqtt_config = {k: v for k, v in full_config.items() if k.startswith('mqtt_')}
-	solmate_config = {k: v for k, v in full_config.items() if k.startswith('eet_')}
+	# get relevant key:values from the full config as it is BUT with keys in lower case
+	# when using envvars from the OS, these are ALWAYS uppercase, we use lowercase
+	# this is important when using a containerized setup and you hand over the config via envvars
+	fcl =  {k.lower(): v for k, v in full_config.items()}
 
-	# the timer values are all converted to absolute integer
-	timer_config = {k: abs(int(v.strip() or 0)) for k, v in full_config.items() if k.startswith('timer_')}
+	# get the config values for mqtt
+	mqtt_config = {k: v for k, v in fcl.items() if k.startswith('mqtt_')}
+
+	# get the config values for the solmate
+	solmate_config = {k: v for k, v in fcl.items() if k.startswith('eet_')}
+
+	# timer values are all converted to an absolute integer
+	timer_config = {k: abs(int(v.strip() or 0)) for k, v in fcl.items() if k.startswith('timer_')}
 
 	# get the config values for general program configuration
-	general_config = {k: v for k, v in full_config.items() if k.startswith('general_')}
+	general_config = {k: v for k, v in fcl.items() if k.startswith('general_')}
 
 	#print(mqtt_config)
 	#print(solmate_config)
