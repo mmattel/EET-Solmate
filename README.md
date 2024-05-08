@@ -2,7 +2,7 @@
 
 Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
 
-<a href="https://www.buymeacoffee.com/mmattel" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+<a href="https://www.buymeacoffee.com/martin.mattel" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
    * [General Info](#general-info)
    * [Upgrading - Breaking Changes](#upgrading---breaking-changes)
