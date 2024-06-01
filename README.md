@@ -199,17 +199,17 @@ sensor:
 
 ## Set Values via MQTT
 
-Some values can be set via MQTT like injection or boost. Set these values as plain number string without any decimal or thousand separator. For the time being, only positive numbers are allowed, omit therefore leading + or - symbols. The values will be casted by the program internally to integer. It can happen that when defining values using dot and comma, language settings may mix them up and the cast confuses and errors.
+Some values can be set via MQTT like injection or boost. Set these values as plain number string without any decimal or thousand separator. For the time being, only positive fractionless numbers are allowed, omit therefore leading + or - symbols. The values will be casted by the program internally to integer. It can happen that when defining values using dot and comma, language settings may mix them up and the cast confuses and errors.
 
 **TIPS:**
 - When using the incoming new values event (MQTT or HA) to calculate new Solmate settings, have a small delay like 1 second before updating them via MQTT.
 - Only send values if they have changed.
-- Before going productive with own settings, check the log of the python script for possible errors responded by the Solmate and fix them.
+- Before going productive with dynamic settings, check the log of the python script for possible errors responded by the Solmate and fix them.
 
 **INFO:**\
 The script processes the outgoing and incoming messages the following way:
 1. The loop interval to check for new values from the Solmate is defined by `timer_live` and defaults to 30s.
-2. Each recieved MQTT message interrupts that timer and restarts the loop.
+2. A recieved MQTT message interrupts that timer and processing the loop starts.
 3. The loop first checks for messages recieved from MQTT and sends them to the solmate.
-4. Then all real and artificial values from the Solmate are queried and sent to MQTT.
-5. The timer is restarted.
+4. Then all real and artificial values from the Solmate are queried respectively generated and sent to MQTT.
+5. Finally, the timer is restarted.
