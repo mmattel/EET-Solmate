@@ -16,6 +16,7 @@ Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
       * [Energy Dashboard](#energy-dashboard)
       * [Template Sensors](#template-sensors)
       * [Total Solar Injection](#total-solar-injection)
+   * [Set Values via MQTT](#set-values-via-mqtt)
 
 ## General Info
 
@@ -107,13 +108,13 @@ Sensor names are prefixed with an abbreviation of the route for ease of identifi
 
 Most of the sensors shown originate from the Solmate but not all. The following sensors are created artificially and add information about the Solmate connected:
 
-* `info_connected_to`  
+* `info_connected_to`\
   This shows where the solmate is connected to, either `local` or `server`.
-* `info_operating_state`  
-  This either shows `online` or `rebooting`
-* `info_timestamp`  
+* `info_operating_state`\
+  This either shows `online` or `rebooting`.
+* `info_timestamp`\
   There are two timestamps shown, for details see below.
-* `button_reboot`  
+* `button_reboot`\
   This is a button you can click to reboot the Solmate. Note that this is only functional if the Solmate
   is connected locally. Though clickable, it will not work when connected to the server as the server does
   currently not provide the API. As an easy reminder where connected to, check `info_connected_to`.
@@ -177,7 +178,7 @@ Note to reboot HA to make template sensors available.
 The Solmate does not provide an aggregated total solar injection value. This needs to be added in HA manually.
 
 If not already done, add a new Integration: [Riemann sum integral](https://www.home-assistant.io/integrations/integration/).
-The "bad" thing on RI is, if there is a change in the underlaying source which you cant configure anymore, you loose the sum/history and you start counting from 0 because you cant preset it. A template sensor avoids this situation. Alternatively edit the `config/.storage/core.config_entries` file and replace the source (...).
+The "bad" thing on RI is, if there is a change in the underlaying source which you cant configure anymore, you loose the sum/history and you start counting from 0 because you cant preset it. To overcome this situation, Create a template sensor as source, see the section above, to avoid this situation (the source can be changed at any time). Alternatively edit the `config/.storage/core.config_entries` file and replace the source (...).
 
 The following settings need to be made, adapt them according your needs. Either do this by adding a yaml config or directly via the Riemann Integration GUI:
 
@@ -195,3 +196,20 @@ sensor:
     unit_prefix:         k
     unit_time:           h
 ```
+
+## Set Values via MQTT
+
+Some values can be set via MQTT like injection or boost. Set these values as plain number string without any decimal or thousand separator. For the time being, only positive fractionless numbers are allowed, omit therefore leading + or - symbols. The values will be casted by the program internally to integer. It can happen that when defining values using dot and comma, language settings may mix them up and the cast confuses and errors.
+
+**TIPS:**
+- When using the incoming new values event (MQTT or HA) to calculate new Solmate settings, have a small delay like 1 second before updating them via MQTT.
+- Only send values if they have changed.
+- Before going productive with dynamic settings, check the log of the python script for possible errors responded by the Solmate and fix them.
+
+**INFO:**\
+The script processes the outgoing and incoming messages the following way:
+1. The loop interval to check for new values from the Solmate is defined by `timer_live` and defaults to 30s.
+2. A recieved MQTT message interrupts that timer and processing the loop starts.
+3. The loop first checks for messages recieved from MQTT and sends them to the solmate.
+4. Then all real and artificial values from the Solmate are queried respectively generated and sent to MQTT.
+5. Finally, the timer is restarted.
