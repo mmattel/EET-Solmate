@@ -26,6 +26,8 @@ Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
   You need to have as prerequisite HA with MQTT setup and a MQTT broker successfully up and running.
   They can and should therefore run on separate hosts/containers and connect to each other as configured.
 
+* **NEW** since version 6: you **can** define an extra serial number for a spare or replacement Solmate.
+
 * **NEW** since version 5: you **can** write back data from HA via MQTT to the Solmate!
 
 * **NEW** since version 4: you **can** run this scripts as [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/).  
