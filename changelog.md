@@ -1,7 +1,13 @@
 # Changelog
 
+* With version 6, the following changes have been implemented:
+  * You can now define an extra serial number for a spare or replacement Solmate.\
+    Use the key `eet_spare_serial_number`which is not mandatory but can be set to either empty ("") or a valid Solmate serial number.
+  * Fix OS based envvar handling with respect to name casing:\
+    Envvars are internally converted to lower case.
+
 * With version 5, the following changes have been implemented:
-  * Enable some values to be set.
+  * Enable some values to be set via MQTT like injection or boost.
   * Values in HA are now grouped by meaning:\
     **Sensor**, **Config** and **Diagnose**
   * Entities got new names --> **BREAKING**

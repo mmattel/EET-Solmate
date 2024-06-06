@@ -131,7 +131,7 @@ This is informational only and possibly not complete. All routes have as data `{
 9. `shutdown`  
   This route has the following data attributes\
   `{'shut_reboot': 'reboot'}`  (used)\
-  `{'shut_reboot': 'shutdown'}` (not used)
+  `{'shut_reboot': 'shutdown'}` (currently not used)
 10. `set_system_time`  
   This route has a data attribute like `{datetime: n}` where  
   `const e = On()()`, `n = e.utc().format(t)` and `t = "YYYY-MM-DDTHH:mm:ss"` (using javascript as base)
@@ -146,8 +146,9 @@ This is informational only and possibly not complete. All routes have as data `{
     }
     ```
 12. `set_boost_injection`\
-  The opposite of `set_boost_injection` but with two key that MUST be written in one request!\
+  The opposite of `get_boost_injection` but with two keys that MUST be written in one request!\
   Note that EET's original webUI implementation limits the wattage to 500 (I set the limit to 800)
     ```yaml
     {"time": 600, wattage: 500}
-    ``` 
+    ```
+    When writing the pair, boost starts and the timer `remaining_time` counts down. Setting that timer to 0 stops boosting.
