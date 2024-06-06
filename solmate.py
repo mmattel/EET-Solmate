@@ -76,6 +76,7 @@ def main():
 		# Initialize websocket
 		smws_conn = smws.connect_to_solmate(merged_config, console_print)
 		response = smws_conn.authenticate()
+
 	except Exception as err:
 		utils.logging('Failed creating connection/authentication to websocket class.', console_print)
 		# wait until the next try, but do it with a full restart

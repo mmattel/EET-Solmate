@@ -72,7 +72,7 @@ class connect_to_solmate:
 			# when a mandatory option is not sent correctly/at all (route=logs, missing parameter),
 			# solmate just closes the connection instead writing an error response that could be covered
 			# sadly, the error message is not quite helpful as the connection itself was ok
-			utils.logging('Request: Connection closed unexpectedly.', self.console_print)
+			utils.logging('WS Request: Connection closed unexpectedly.', self.console_print)
 			raise ConnectionError('Connection closed unexpectedly.', self.console_print)
 
 		# for all undefined websocket exceptions
@@ -116,6 +116,13 @@ class connect_to_solmate:
 	def authenticate(self):
 		# authenticate on the server or solmate with the given serial number, password and device id
 		try:
+			# get the serial number to use for authentication
+			# this is either the normal sn or, if exists and not empty, the spare sn
+			serial_number = self.merged_config['eet_serial_number']
+			if 'eet_spare_serial_number' in self.merged_config.keys():
+				if self.merged_config['eet_spare_serial_number']:
+					serial_number = self.merged_config['eet_spare_serial_number']
+
 			# get the response to the request of the login route with the login data
 			# note to expect that the endpoint 'login' exists
 			utils.logging('Authenticating.', self.console_print)
@@ -124,7 +131,7 @@ class connect_to_solmate:
 					'id': self.message_id,
 					'route': 'login',
 					'data': {
-						'serial_num': self.merged_config['eet_serial_number'],
+						'serial_num': serial_number,
 						'user_password_hash': base64.encodebytes(hashlib.sha256(self.merged_config['eet_password'].encode()).digest()).decode(),
 						'device_id': self.merged_config['eet_device_id']
 					}
@@ -146,7 +153,7 @@ class connect_to_solmate:
 							'id': self.message_id,
 							'route': 'authenticate',
 							'data': {
-								'serial_num': self.merged_config['eet_serial_number'],
+								'serial_num': serial_number,
 								'signature': signature,
 								'device_id': self.merged_config['eet_device_id']
 							}
@@ -164,17 +171,17 @@ class connect_to_solmate:
 						correct_server = True
 
 				# return the authenticated connection
-				utils.logging('Authentication successful!', self.console_print)
+				utils.logging('Authentication to ' + serial_number + ' successful!', self.console_print)
 				return response
 
 			# authentication failed
 			# the reason may be bad credentials or a failure when redirecting
 			raise
-			utils.logging('Authentication failed!', self.console_print)
+			utils.logging('Authentication to ' + serial_number + ' failed!', self.console_print)
 
 		except Exception:
 			# return that authentication failed
-			utils.logging('Authentication failed!', self.console_print)
+			utils.logging('Authentication to ' + serial_number + ' failed!', self.console_print)
 			raise
 
 	def check_route(self, route, data):
