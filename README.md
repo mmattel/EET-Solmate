@@ -151,7 +151,7 @@ Note to reboot HA to make template sensors available.
       device_class: 'power'
       icon: 'mdi:battery-charging-40'
       state: >
-        {{ -([ 0, states('sensor.solmate_battery_flow') | float(0) ] | min) }}
+        {{ -([ 0, states('sensor.solmate_live_battery_flow') | float(0) ] | min) }}
 
     # battery production
     # production = positive values(inject_power) or 0
@@ -161,7 +161,7 @@ Note to reboot HA to make template sensors available.
       device_class: 'power'
       icon: 'mdi:home-battery-outline'
       state: >
-        {{ ([ 0, states('sensor.solmate_battery_flow') | float(0) ] | max) }}
+        {{ ([ 0, states('sensor.solmate_live_battery_floww') | float(0) ] | max) }}
 
     # injection power (to be independent of entity name changes) to be used in riemann integral
     # production = positive values(inject_power) or 0
