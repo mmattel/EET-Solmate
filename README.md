@@ -9,14 +9,15 @@ Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
    * [Important Improvements](#important-improvements)
    * [Preparation and Quick Start](#preparation-and-quick-start)
    * [Preparation for HAOS](#preparation-for-haos)
-   * [Script Components](#script-components)
-   * [Run as systemd Service (Linux Only)](#run-as-systemd-service-linux-only)
+   * [Configure the Script](#configure-the-script)
    * [Home Assistant](#home-assistant)
       * [MQTT Sensors](#mqtt-sensors)
       * [Energy Dashboard](#energy-dashboard)
       * [Template Sensors](#template-sensors)
       * [Total Solar Injection](#total-solar-injection)
    * [Set Values via MQTT](#set-values-via-mqtt)
+   * [Script Components](#script-components)
+   * [Known Routes](#known-routes)
 
 ## General Info
 
@@ -24,13 +25,16 @@ Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
 
 * HA, MQTT and this set of Python scripts are **independent units**.  
   You need to have as prerequisite HA with MQTT setup and a MQTT broker successfully up and running.
-  They can and should therefore run on separate hosts/containers and connect to each other as configured.
+  They can also run on separate hosts/containers and be connected to each other.
 
-* **NEW** since version 6: you **can** define an extra serial number for a spare or replacement Solmate.
+* The minimal Python version supported is Python 9 and works the latest Python libraries.
+
+* **NEW** since version 6: you **can** define an extra serial number for a spare or replacement Solmate.\
+Note that there are new functionalities and breaking changes.
 
 * **NEW** since version 5: you **can** write back data from HA via MQTT to the Solmate!
 
-* **NEW** since version 4: you **can** run this scripts as [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/).  
+* **NEW** since version 4: you **can** run these scripts as [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/).  
   Though HA shell commands terminate hard by HA post 60s runtime, I have found a way to make it possible...
   Only a view steps need to be taken and it works, at least in my docker environment which should not be different from HAOS. Libraries needed are reboot persistent and do not conflict with shipped HA libraries. This enables a
   startup on reboot via automation!
@@ -44,8 +48,6 @@ Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
 
 * Stability  
   Compared to the [solmate SDK](https://github.com/eet-energy/solmate-sdk), the code provided has tons of [error handling](#error-handling) that will make the script run continuosly even if "strange" stuff occurs.
-
-* The scripts uses and works the latest Python libraries.
 
 ## Upgrading - Breaking Changes
 
@@ -67,38 +69,9 @@ When running HAOS you **can** prepare the environment to autostart the solmate s
 
 See the [HAOS - solmate](./docs/prep-ha.md) description for details.
 
-## Script Components
+## Configure the Script
 
-See the linked [description](./docs/script-components.md) for details.
-
-## Run as systemd Service (Linux Only)
-
-When running the Python script on a Linux system using `systemd`, you can automate it on startup.
-
-1. To create a service to autostart the script at boot, copy the content of the example service  
-configuration from below into the editor when called in step 2.
-2. `sudo systemctl edit --force --full eet.solmate`
-3. Edit the path to your script path and for the .env file.  
-Also make sure to replace `<your-user>` with the account from which this script should run.
-4. Finalize with the following commands:  
-`sudo systemctl daemon-reload`  
-`sudo systemctl enable --now eet.solmate.service`  
-`sudo systemctl status eet.solmate.service` 
-
-```
-[Unit]
-Description=Python based EET-Solmate to MQTT
-After=multi-user.target
-
-[Service]
-User=<your-user>
-Restart=on-failure
-Type=idle
-ExecStart=/usr/bin/python3 /home/<your-user>/<your-path>/solmate.py </home/<your-user>/<your-path>/.env>
-
-[Install]
-WantedBy=multi-user.target
-```
+See the [configuration](./docs/configuration.md) description for details.
 
 ## Home Assistant
 
@@ -177,7 +150,7 @@ Note to reboot HA to make template sensors available.
 
 ### Total Solar Injection
 
-The Solmate does not provide an aggregated total solar injection value. This needs to be added in HA manually.
+The Solmate does not provide an aggregated total solar injection value. This needs to be added manually in HA.
 
 If not already done, add a new Integration: [Riemann sum integral](https://www.home-assistant.io/integrations/integration/).
 The "bad" thing on RI is, if there is a change in the underlaying source which you cant configure anymore, you loose the sum/history and you start counting from 0 because you cant preset it. To overcome this situation, Create a template sensor as source, see the section above, to avoid this situation (the source can be changed at any time). Alternatively edit the `config/.storage/core.config_entries` file and replace the source (...).
@@ -201,10 +174,18 @@ sensor:
 
 ## Set Values via MQTT
 
-Some values can be set via MQTT like injection or boost. Set these values as plain number string without any decimal or thousand separator. For the time being, only positive fractionless numbers are allowed, omit therefore leading + or - symbols. The values will be casted by the program internally to integer. It can happen that when defining values using dot and comma, language settings may mix them up and the cast confuses and errors.
+Some values can be set via MQTT like injection or boost.
+
+**IMPORTANT:**\
+These values MUST BE plain integer numbers WITHOUT any decimal or thousand separator.
+For the time being, only positive fractionless numbers are allowed. Omit leading + or - symbols.
+The values are tried to be casted by the program to integer. It is very likely, that when defining
+values using dot and comma, language settings mix them up and the cast can't succeed. In this case,
+the LAST KNOWN working value will be used instead and a warning will be logged !
 
 **TIPS:**
-- When using the incoming new values event (MQTT or HA) to calculate new Solmate settings, have a small delay like 1 second before updating them via MQTT.
+- When using the incoming new values event (MQTT or HA) to calculate new Solmate settings,
+have a small delay like 1 second before updating them via MQTT.
 - Only send values if they have changed.
 - Before going productive with dynamic settings, check the log of the python script for possible errors responded by the Solmate and fix them.
 
@@ -215,3 +196,40 @@ The script processes the outgoing and incoming messages the following way:
 3. The loop first checks for messages recieved from MQTT and sends them to the solmate.
 4. Then all real and artificial values from the Solmate are queried respectively generated and sent to MQTT.
 5. Finally, the timer is restarted.
+
+### BOOST
+
+Boosting is not the same way implemented as on the Solmates's webUI. There, setting handling is implemented
+in the browser code and not in the Solmate. This mechanism is quite complex to handle and you can't just
+preset the values and then trigger start/stop boosting via the API.
+
+To overcome this, the implementation is as follows, follow the steps carefully:
+- Set the boost timer to 0.
+- Set the boost wattage.
+- Set the boost timer to a non zero value - Boost starts now automatically.
+- Set the boost timer to 0 to stop boosting if it is in boost mode (remaining time > 0).
+
+The procedure above is very close to the Solmates internal webUI code but omits a boost start/stop button.
+
+Frankly speaking, as long there is no proper API route implementation, avoid using boost via the program.
+
+### Node Red
+
+Using Node Red or any other mechanism to write back injection values (or others when added later):
+
+- Read the important information about the value type from above!
+- When calculating a value and writing it back, have a minimum delay like 1s before writing the next one
+from the SAME calculation.
+- The default setting of 30s to query the Solmate is a good rule of thumb.\
+Shorter intervals do not make a lot of sense.
+- Note that writing back also triggers a consecutive read after writing (else you would not see updates).
+- After finishing all write backs from one cycle, implement some wait for the next query/set
+cycle to avoid possible oscillation.
+
+## Script Components
+
+See the linked [description](./docs/script-components.md) for details.
+
+## Known Routes
+
+See the linked [description](./docs/known-routes.md) for details.

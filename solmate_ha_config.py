@@ -34,6 +34,9 @@ def construct_ha_config_message(c_s):
 	device_values['manufacturer'] = 'EET Energy'
 	device_values['serial_number'] = c_s.merged_config['eet_serial_number']
 
+	if c_s.merged_config['eet_spare_serial_number']:
+		device_values['via_device'] = c_s.merged_config['eet_spare_serial_number']
+
 	# virtual topics
 	live = '/live'
 	live_n = 'live_'
@@ -373,10 +376,7 @@ def construct_ha_config_message(c_s):
 
 # collection of system switches like reboot
 # add all switches/buttons here to be part of the system hierarchy
-	if c_s.disabled_api['local']:
-		dynamic_topic = c_s.mqtt_availability_topic
-	else:
-		dynamic_topic = c_s.mqtt_never_available_topic
+	dynamic_topic = c_s.mqtt_availability_topic if c_s.api_available['shutdown'] else c_s.mqtt_never_available_topic
 	i += 1
 	route.append(1)
 	names.append(1)
@@ -406,7 +406,8 @@ def construct_ha_config_message(c_s):
 	configs[i] = json.dumps(dictionaries[name])
 
 # route: 'get_injection_settings'
-# collection of existing injection settings, queried in the same interval of live values 
+# collection of existing injection settings, queried in the same interval of live values
+	dynamic_topic = c_s.mqtt_availability_topic if c_s.api_available['hasUserSettings'] else c_s.mqtt_never_available_topic
 	i += 1
 	route.append(1)
 	names.append(1)
@@ -426,7 +427,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + get_injection,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
 		'icon': 'mdi:home-lightning-bolt-outline',
@@ -453,7 +454,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + get_injection,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
 		'icon': 'mdi:home-lightning-bolt',
@@ -479,7 +480,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + get_injection,
 		'value_template': '{{ ((value_json.' + fake_names[i] + ' | float(0)) | round(1)) }}',
 		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': '%',
 		'device': device_values,
 		'icon': 'mdi:battery-low',
@@ -489,6 +490,7 @@ def construct_ha_config_message(c_s):
 
 # route: 'get_boost_injection'
 # collection of existing boost injection settings, queried in the same interval of live values 
+	dynamic_topic = c_s.mqtt_availability_topic if c_s.api_available['sun2plugHasBoostInjection'] else c_s.mqtt_never_available_topic
 	i += 1
 	route.append(1)
 	names.append(1)
@@ -506,7 +508,7 @@ def construct_ha_config_message(c_s):
 		'name': name,
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | int(0)) }}',
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 's',
 		# the name used can be read and written, so we need to distinguish
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_read_' + name,
@@ -536,7 +538,7 @@ def construct_ha_config_message(c_s):
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
 		# the name used can be read and written, so we need to distinguish
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_read_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
 		'icon': 'mdi:home-lightning-bolt',
@@ -561,7 +563,7 @@ def construct_ha_config_message(c_s):
 		'name': name,
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 's',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
 		'device': device_values,
@@ -589,7 +591,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
 		'icon': 'mdi:transmission-tower-import',
@@ -598,11 +600,8 @@ def construct_ha_config_message(c_s):
 	configs[i] = json.dumps(dictionaries[name])
 
 # collection of user definable values like min/maximum_injection and minimum_battery_percentage etc
-# boost
-	if c_s.disabled_api['sun2plugHasBoostInjection']:
-		dynamic_topic = c_s.mqtt_availability_topic
-	else:
-		dynamic_topic = c_s.mqtt_never_available_topic
+# set boost
+	dynamic_topic = c_s.mqtt_availability_topic if c_s.api_available['sun2plugHasBoostInjection'] else c_s.mqtt_never_available_topic
 	i += 1
 	route.append(1)
 	names.append(1)
@@ -619,8 +618,8 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': 800,
-		'min': 0,
+		'max': c_s.merged_config['default_boost_injection_wattage'],
+		'min': 0, # hardcoded, see note in solmate_env.py
 		'step': 5,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
@@ -652,8 +651,8 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': 10800, # 3h
-		'min': 0,
+		'max': c_s.merged_config['default_max_boost_time'],
+		'min': c_s.merged_config['default_min_boost_time'],
 		'step': 60,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
@@ -668,7 +667,8 @@ def construct_ha_config_message(c_s):
 	}
 	configs[i] = json.dumps(dictionaries[name])
 
-# inject
+# set inject
+	dynamic_topic = c_s.mqtt_availability_topic if c_s.api_available['hasUserSettings'] else c_s.mqtt_never_available_topic
 	i += 1
 	route.append(1)
 	names.append(1)
@@ -685,7 +685,7 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': 800,
+		'max': c_s.merged_config['default_user_maximum_injection'],
 		'min': 0,
 		'step': 5,
 		'mode': 'slider',
@@ -694,7 +694,7 @@ def construct_ha_config_message(c_s):
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
 		'icon': 'mdi:priority-low',
@@ -718,8 +718,8 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': 800,
-		'min': 0,
+		'max': c_s.merged_config['default_user_maximum_injection'],
+		'min': c_s.merged_config['default_user_minimum_injection'],
 		'step': 5,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_injection, 
@@ -727,7 +727,7 @@ def construct_ha_config_message(c_s):
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
 		'icon': 'mdi:priority-high',
@@ -751,15 +751,15 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': 90,
-		'min': 0,
+		'max': c_s.merged_config['default_max_battery'], # hardcoded, see note in solmate_env.py
+		'min': c_s.merged_config['default_user_minimum_battery_percentage'],
 		'step': 5,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_injection, 
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
 		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
-		'availability_topic': c_s.mqtt_availability_topic,
+		'availability_topic': dynamic_topic,
 		'unit_of_measurement': '%',
 		'device': device_values,
 		'icon': 'mdi:battery-low',

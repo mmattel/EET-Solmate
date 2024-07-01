@@ -6,11 +6,9 @@
    * [`solmate_utils.py`](#solmate_utilspy)
    * [`solmate_check.py`](#solmate_checkpy)
    * [`solmate_env.py`](#solmate_envpy)
-      * [Necessary Data in the '.env' File](#necessary-data-in-the-env-file)
    * [Error Handling](#error-handling)
-   * [Known Routes](#known-routes)
 
-## solmate.py
+## `solmate.py`
 
 This is the main program that imports all other components. It also has a proper CTRL-C and SIGTERM handling.
 
@@ -80,24 +78,6 @@ This reads config data from the `.env` file or a file defined as cmd line argume
 You can also use envvars instead. To force using envvars, no `.env` file must be present or defined
 as option on startup.
 
-### Necessary Data in the '.env' File
-
-As a starting point, make a copy of the `.env-sample` file, name it `.env` and adapt it accordingly.
-
-Following parameters are intended either for development or testing but feel free to adapt them according your needs.
-
-* Define `general_add_log` as required to add any log output for default timers when using loops.  
-  Can be set to `False` when running as deamon like with systemd. Note that `live_values` do not need any waiting time to be logged...
-
-* Define `general_print_response` to enable/disable console print of the response.  
-  Helpful when testing.
-
-* Define `general_console_print` to enable logging using console additionally, syslog is always used.
-
-* Define `general_use_mqtt` to globally enable/disable mqtt, makes it easier for testing.
-
-Note that the environment variable `general_api_info` only needs to be present and set to true if one wants to request a list of known routes requested via the `get_api_info` route. You can see the output at [Known Routes](#known-routes). Note that EET sometimes "forgets" to add new routes to the API list, which is quite painful to reverse engineer. A difference can be seen like when opening a browser to set/request data on the Solmate and new items appear but are not listed in the API response. 
-
 ## Error Handling
 
 Errors are handled on best effort and in **most cases** handed over to the caller to decide.
@@ -112,43 +92,3 @@ watch the log, it will continue after the waiting time. Can't be covered due to 
 
 For those who are interested in the details of `sent 1011`: Timing in websocket responses is critical,
 even when using asynchronous timers. If the underlaying ping-pong gets out of sync, a 1011 may occur.
-
-## Known Routes
-
-This is informational only and possibly not complete. All routes have as data `{}` (= no data) except where mentioned
-
-1. `get_api_info`
-2. `get_solmate_info`
-3. `live_values`
-4. `get_user_settings`
-5. `get_grid_mode`
-6. `get_injection_settings`\
-  Note that you must provide proper data as attribute, see `get_api_info` output for more details.\
-  Note that there are also writable routes to set injection settings which are not explicitly mentioned here, see `get_api_info` for more details.
-
-7. `logs`\
-  Note that you must provide proper data as attribute, see `get_api_info` output for more details.
-9. `shutdown`  
-  This route has the following data attributes\
-  `{'shut_reboot': 'reboot'}`  (used)\
-  `{'shut_reboot': 'shutdown'}` (currently not used)
-10. `set_system_time`  
-  This route has a data attribute like `{datetime: n}` where  
-  `const e = On()()`, `n = e.utc().format(t)` and `t = "YYYY-MM-DDTHH:mm:ss"` (using javascript as base)
-11. `get_boost_injection`\
-  This route is not officially documented (part of the get_api_info) but available via the browser.
-    ```yaml
-    {
-      "set_time": 0,
-      "remaining_time": 0,
-      "set_wattage": 500.0,
-      "actual_wattage": 112.59259033203125
-    }
-    ```
-12. `set_boost_injection`\
-  The opposite of `get_boost_injection` but with two keys that MUST be written in one request!\
-  Note that EET's original webUI implementation limits the wattage to 500 (I set the limit to 800)
-    ```yaml
-    {"time": 600, wattage: 500}
-    ```
-    When writing the pair, boost starts and the timer `remaining_time` counts down. Setting that timer to 0 stops boosting.
