@@ -1,6 +1,17 @@
 # Changelog
 
 * With version 6, the following changes have been implemented:
+  * Rework of BOOST and INJECTION handling. See the HA section in README the for more and important details.
+  * MQTT has now an error handling if the connection was initially not startable.
+    If the connection was once established, it reconnects automatically.
+  * Add the ability for a spare/replacement Solmate. See the `.env-sample` file for more details.
+  * Add new optional envvars to define limits. See the `.env-sample` file for more details.
+  * Global envvars are now optional, you can safely remove them from your config except for those
+   where you have deviated settings. See the `.env-sample` file for more details.
+  * Code refactoring
+  * Documentation refactoring.
+
+* With version 6, the following changes have been implemented:
   * You can now define an extra serial number for a spare or replacement Solmate.\
     Use the key `eet_spare_serial_number`which is not mandatory but can be set to either empty ("") or a valid Solmate serial number.
   * Fix OS based envvar handling with respect to name casing:\

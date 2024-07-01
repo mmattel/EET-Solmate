@@ -38,10 +38,11 @@ def create_async_loop():
 		asyncio.set_event_loop(loop)
 	return loop
 
-def logging(message, console_print = False):
+def logging(message, merged_config):
 	# print logging data to console (conditional) and syslog (always)
 
-	if console_print:
+	# mandatory print the message on the console if defined
+	if merged_config['general_console_print']:
 		print(message)
 
 	message = str(message)
@@ -55,7 +56,7 @@ async def _async_timer(timer_value):
 	# run an async timer
 	await asyncio.sleep(timer_value)
 
-def timer_wait(merged_config, timer_name, console_print, add_log = True, mqtt_command = False):
+def timer_wait(merged_config, timer_name, add_log = True, mqtt_command = False):
 	# wait the number of seconds passed via the name as argument
 
 	# mqtt_queue is defined on the module level
@@ -63,7 +64,7 @@ def timer_wait(merged_config, timer_name, console_print, add_log = True, mqtt_co
 
 	if add_log:
 		# log at all, but decide where
-		logging('Waiting: ' + timer_name + ': ' + str(merged_config[timer_name]) + 's', console_print)
+		logging('Waiting: ' + timer_name + ': ' + str(merged_config[timer_name]) + 's', merged_config)
 
 	# wait, but let other tasks like websocket or mqtt do its backend stuff.
 	# timer.sleep would hard block that
@@ -79,7 +80,7 @@ def timer_wait(merged_config, timer_name, console_print, add_log = True, mqtt_co
 				break
 		create_async_loop().run_until_complete(_async_timer(0.5))
 
-def restart_program(console_print, counter=0, mqtt=False):
+def restart_program(merged_config, counter=0, mqtt=False):
 	# this restarts the program like you would have started it manually again
 	# used for events where it is best to start from scratch
 
@@ -90,10 +91,10 @@ def restart_program(console_print, counter=0, mqtt=False):
 
 	if counter > 0:
 		# log restart reason if _consescutive_ websocket errors occured
-		logging('Restarting program due to ' + str(counter) + ' consecutive unprocessable WS conditions.', console_print)
+		logging('Restarting program due to ' + str(counter) + ' consecutive unprocessable WS conditions.', merged_config)
 	else:
 		# log that we are restarting without describing the cause
-		logging('Restarting program.', console_print)
+		logging('Restarting program.', merged_config)
 
 	sys.stdout.flush()
 	os.execv(sys.executable, ['python'] + sys.argv)
