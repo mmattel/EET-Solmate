@@ -27,7 +27,7 @@ You can read the respective comments for their purpose.
 These keys are optional and do not need to be present. They are, if not present, internally generated
 including their defaults if any. If present, the overwrite the generated ones.
 
-The optional following key schemes are present:
+The following optional key schemes are present:
 
 * `eet_`\
 These keys extend the mandatory eet key scheme.
@@ -36,6 +36,5 @@ The Solmate has some setting defaults when using the webUI. These settings are r
 when adding the respective key to the config. Note that changing defaults is on your own responsibility.
 * `general_`\
 Only needed for debugging and testing purposes. 
-
 * `timer_`\
 All timer related config keys.
