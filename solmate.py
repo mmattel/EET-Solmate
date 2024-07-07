@@ -257,8 +257,9 @@ if __name__ == '__main__':
 		main()
 	except KeyboardInterrupt:
 		try:
-			# check if merged_config has values
-			merged_config
+			# check if merged_config has been initialized and has values
+			if merged_config:
+				pass
 		except NameError:
 			# the error has happened before successfully getting the envvars in process_env
 			# to avoid a print error, we define the two mandatory envvars for logging
