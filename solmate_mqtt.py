@@ -478,7 +478,7 @@ class solmate_mqtt():
 	def _construct_update_message(self, response):
 		# construct an update message
 		# note that whatever keys in the response are present, they are processed
-		# we need to replace real keys from teh API with fake keys defined in the construct message
+		# we need to replace real keys from the API with fake keys defined in the construct message
 		final = json.dumps(response)
 		#print(json.dumps(response, indent=4))
 		return final

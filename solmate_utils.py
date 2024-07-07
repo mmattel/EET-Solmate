@@ -3,7 +3,7 @@ import os
 import queue
 import sys
 import syslog
-import time
+from datetime import datetime
 
 # functions here are provided for general availability
 
@@ -43,13 +43,18 @@ def logging(message, merged_config):
 
 	# mandatory print the message on the console if defined
 	if merged_config['general_console_print']:
-		print(message)
+		if merged_config['general_console_timestamp']:
+			timestamp = '[' + datetime.now().strftime('%Y-%m-%dT%H:%M:%S') + '] '
+			print(timestamp + message)
+		else:
+			print(message)
 
 	message = str(message)
 	# the message maybe not a string but a number
 	message = message.replace('\r', '')
 	# remove \r = carriage return (octal 015)
 	# this would else show up in syslog like as #015Interrupted by keyboard
+	# a timestamp is not needed as syslog does that automatically
 	syslog.syslog(f'{message}')
 
 async def _async_timer(timer_value):
