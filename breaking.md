@@ -8,7 +8,7 @@
   IMPORTANT: compared to the former release where things are hardcoded, defaults are now compliant
   to what EET has defined like max wattage with value 500. You can change that to the EU standard of max 800.
   * The BOOST function and the INJECTION settings have been reworked, see the README for important details.
-	* Any `.env` setting that contained a string value for a boolean representation is now internally
+  * Any `.env` setting that contained a string value for a boolean representation is now internally
   converted into their bool value.
 
 * When upgrading from release 4.x to 5.0, some important steps need to be performed in the given sequence:
