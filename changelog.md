@@ -13,6 +13,8 @@
   * The envvar `general_add_log` has been removed as it was not used in the code.
     It was an orphand from ancient times.
   * The newly added envvar `general_console_timestamp` will add a timestamp to the console printout.
+  * Set values via MQTT has been improved and an error handling implemented. You MUST use integer
+    (non fractioned numbers) values. See the README for more details.
   * Code refactoring
   * Documentation refactoring.
 * With version 5, the following changes have been implemented:
