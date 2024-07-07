@@ -77,9 +77,9 @@ def process_env():
 	for k, v in merged_config.items():
 		#print(k, str(v).lower())
 		x = str(v).lower()
-		if (x == 'False') or ((x == 'false')):
+		if (x == 'False') or (x == 'false'):
 			merged_config[k] = False
-		if (x == 'True') or ((x == 'true')):
+		if (x == 'True') or (x == 'true'):
 			merged_config[k] = True
 		if not x:
 			merged_config[k] = False
