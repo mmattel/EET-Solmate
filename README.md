@@ -30,7 +30,7 @@ Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
 * The minimal Python version supported is Python 9 and works the latest Python libraries.
 
 * **NEW** since version 6: you **can** define an extra serial number for a spare or replacement Solmate.\
-Note that there are new functionalities and breaking changes.
+Note that there are also new functionalities and breaking changes.
 
 * **NEW** since version 5: you **can** write back data from HA via MQTT to the Solmate!
 
@@ -199,7 +199,7 @@ The script processes the outgoing and incoming messages the following way:
 
 ### BOOST
 
-Boosting is not the same way implemented as on the Solmates's webUI. There, setting handling is implemented
+Boosting is **not** the same way implemented as on the Solmates's webUI. There, setting handling is implemented
 in the browser code and not in the Solmate. This mechanism is quite complex to handle and you can't just
 preset the values and then trigger start/stop boosting via the API.
 

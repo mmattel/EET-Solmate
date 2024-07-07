@@ -256,9 +256,15 @@ if __name__ == '__main__':
 	try:
 		main()
 	except KeyboardInterrupt:
-		# the error may have occured before getting the envvars
-		merged_config = {}
-		merged_config['general_console_print'] = 'True'
+		try:
+			# check if merged_config has values
+			merged_config
+		except NameError:
+			# the error has happened before successfully getting the envvars in process_env
+			# to avoid a print error, we define the two mandatory envvars for logging
+			merged_config = {}
+			merged_config['general_console_print'] = 'True'
+			merged_config['general_console_timestamp'] = 'False'
 		# avoid printing ^C on the console
 		# \r = carriage return (octal 015)
 		utils.logging('\rInterrupted by keyboard', merged_config)

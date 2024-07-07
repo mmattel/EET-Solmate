@@ -7,18 +7,16 @@
   * Add the ability for a spare/replacement Solmate. See the `.env-sample` file for more details.
   * Add new optional envvars to define limits. See the `.env-sample` file for more details.
   * Global envvars are now optional, you can safely remove them from your config except for those
-   where you have deviated settings. See the `.env-sample` file for more details.
+    where you have deviated settings. See the `.env-sample` file for more details.
+  * Timer envvars are now optional, you can safely remove them from your config except for those
+    where you have deviated settings. See the `.env-sample` file for more details.
+  * The envvar `general_add_log` has been removed as it was not used in the code.
+    It was an orphand from ancient times.
+  * The newly added envvar `general_console_timestamp` will add a timestamp to the console printout.
   * Code refactoring
   * Documentation refactoring.
-
-* With version 6, the following changes have been implemented:
-  * You can now define an extra serial number for a spare or replacement Solmate.\
-    Use the key `eet_spare_serial_number`which is not mandatory but can be set to either empty ("") or a valid Solmate serial number.
-  * Fix OS based envvar handling with respect to name casing:\
-    Envvars are internally converted to lower case.
-
 * With version 5, the following changes have been implemented:
-  * Enable some values to be set via MQTT like injection or boost.
+  * Enable some values to be set.
   * Values in HA are now grouped by meaning:\
     **Sensor**, **Config** and **Diagnose**
   * Entities got new names --> **BREAKING**
