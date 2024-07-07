@@ -54,7 +54,7 @@ def logging(message, merged_config):
 	message = message.replace('\r', '')
 	# remove \r = carriage return (octal 015)
 	# this would else show up in syslog like as #015Interrupted by keyboard
-	# a timestamp is nozt needed as syslog does that automatically
+	# a timestamp is not needed as syslog does that automatically
 	syslog.syslog(f'{message}')
 
 async def _async_timer(timer_value):
