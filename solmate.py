@@ -53,8 +53,7 @@ def main():
 	merged_config = env.process_env()
 
 	# get the general program config data
-	print_response = True if merged_config['general_print_response'] == 'True' else False
-	use_mqtt = True if merged_config['general_use_mqtt'] == 'True' else False
+	print_response = merged_config['general_print_response']
 
 	# initialize colors for output, needed for Windows
 	if sys.platform == 'win32':
@@ -119,7 +118,7 @@ def main():
 
 	# check if we should *only* print the current API info response
 	# eases debugging the current published available routes
-	if merged_config['general_api_info'] == 'True':
+	if merged_config['general_api_info']:
 		response = smws_conn.query_solmate('get_api_info', {}, merged_config)
 		print('\n\'get_api_info\' route info requested: \n')
 		print(json.dumps(response, ensure_ascii=False, indent=2, separators=(',', ': ')))
@@ -140,7 +139,7 @@ def main():
 	# some routes we know
 	api_available['local'] = local
 
-	if use_mqtt:
+	if merged_config['general_use_mqtt']:
 		# initialize and start mqtt
 		try:
 			mqtt = smmqtt.solmate_mqtt(merged_config, smws_conn, api_available)
@@ -264,8 +263,8 @@ if __name__ == '__main__':
 			# the error has happened before successfully getting the envvars in process_env
 			# to avoid a print error, we define the two mandatory envvars for logging
 			merged_config = {}
-			merged_config['general_console_print'] = 'True'
-			merged_config['general_console_timestamp'] = 'False'
+			merged_config['general_console_print'] = True
+			merged_config['general_console_timestamp'] = False
 		# avoid printing ^C on the console
 		# \r = carriage return (octal 015)
 		utils.logging('\rInterrupted by keyboard', merged_config)
