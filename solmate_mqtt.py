@@ -440,7 +440,9 @@ class solmate_mqtt():
 			# fake a operating_state into the response if not present
 			response['operating_state'] = 'rebooting' if self.eet_reboot_in_progress else 'online'
 			# fake a connected_to into the response if not present
-			response['connected_to'] = 'local' if self.api_available['shutdown'] else 'cloud'
+			response['connected_to'] = 'local' if self.api_available['local'] else 'cloud'
+			# fake a esham sw version (this program) into the response, for sure not present
+			response['esham_version'] = self.merged_config['internal_esham_version']
 
 		if endpoint == 'get_boost':
 			# remember the last response

@@ -13,8 +13,8 @@ import solmate_mqtt as smmqtt
 import solmate_utils as utils
 import solmate_websocket as smws
 
-# version 6.0.0
 # 2024.07
+version = '6.1.0'
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -47,10 +47,10 @@ def query_once_a_day(smws_conn, route, data, merged_config, mqtt, print_response
 		if mqtt:
 			mqtt.send_sensor_update_message(response, endpoint)
 
-def main():
+def main(version):
 
 	# get envvars to configure access either from file or from os/docker envvars
-	merged_config = env.process_env()
+	merged_config = env.process_env(version)
 
 	# get the general program config data
 	print_response = merged_config['general_print_response']
@@ -253,7 +253,7 @@ def main():
 
 if __name__ == '__main__':
 	try:
-		main()
+		main(version)
 	except KeyboardInterrupt:
 		try:
 			# check if merged_config has been initialized and has values

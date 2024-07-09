@@ -2,6 +2,8 @@
 
 Integrate EET SolMate with Homeassistant using MQTT (read AND write!)
 
+Internal name: `esham` --> **E**et **S**olmate **H**ome**A**ssistant **M**qtt
+
 <a href="https://www.buymeacoffee.com/martin.mattel" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
    * [General Info](#general-info)
@@ -83,8 +85,10 @@ Sensor names are prefixed with an abbreviation of the route for ease of identifi
 
 Most of the sensors shown originate from the Solmate but not all. The following sensors are created artificially and add information about the Solmate connected:
 
+* `info_esham_version`\
+  Shows the version of this software.
 * `info_connected_to`\
-  This shows where the solmate is connected to, either `local` or `server`.
+  This shows where the solmate is connected to, either `local` or `cloud`.
 * `info_operating_state`\
   This either shows `online` or `rebooting`.
 * `info_timestamp`\
