@@ -1,12 +1,13 @@
 # Changelog
 
-* With version 6, the following changes have been implemented:
+* With version 6.1.0, the following changes have been implemented:
+  * On special request, the info section now shows the version of this SW (esham).
+* With version 6.0.0, the following changes have been implemented:
   * Rework of BOOST and INJECTION handling. See the HA section in README the for more and important details.
   * MQTT has now an error handling if the connection was initially not startable.
     If the connection was once established, it reconnects automatically.
   * Add the ability for a spare/replacement Solmate. See the `.env-sample` file for more details.
   * Add new optional envvars to define limits. See the `.env-sample` file for more details.
-    These envvars DO NOT SET the values for the entity but define the RANGE if you send data via MQTT.
   * Global envvars are now optional, you can safely remove them from your config except for those
     where you have deviated settings. See the `.env-sample` file for more details.
   * Timer envvars are now optional, you can safely remove them from your config except for those

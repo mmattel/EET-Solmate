@@ -4,7 +4,7 @@ from dotenv import dotenv_values
 import json
 import solmate_utils as utils
 
-def process_env():
+def process_env(version):
 	# get all environment variables as dictionary
 	# https://pypi.org/project/python-dotenv/
 	# file either predefined or as cmd line option. option ID starts with 2
@@ -31,7 +31,7 @@ def process_env():
 			message = 'No \'.env\' file found, expecting envvars.'
 
 	# first add optional keys and their defaults to allow logging
-	merged_config = _add_optional_env()
+	merged_config = _add_optional_env(version)
 	#print(merged_config)
 	#print(json.dumps(merged_config, indent=2, sort_keys=True))
 
@@ -103,7 +103,7 @@ def process_env():
 
 	return merged_config
 
-def _add_optional_env():
+def _add_optional_env(version):
 	# if the key does not exist, it is added with a default value.
 	# note that strings and empty values must be embedded in ''.
 	# numeric values casted into their corresponding type.
@@ -116,6 +116,9 @@ def _add_optional_env():
 	min_boost_time = 0		# 0s
 	max_boost_time = 10800	# 3h
 	boost_max_wattage = 500	# originally from the webUI, this is only 500
+
+	# add the version to the merged config keys
+	add_optional.setdefault('internal_esham_version', version)
 
 	# eet spare is new and defaults to empty
 	add_optional.setdefault('eet_spare_serial_number', False)

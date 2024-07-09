@@ -355,6 +355,33 @@ def construct_ha_config_message(c_s):
 	configs.append(1)
 	config_topics.append(1)
 	route[i] = False
+	fake_names[i] = 'esham_version'
+	real_names[i] = 'esham_version'
+	name = info_n + fake_names[i]
+	names[i] = '/' + name
+	config_topics[i] = c_s.mqtt_sensor_config_topic
+	dictionaries[name] = {
+		'name': name,
+		# no device class here as it is a string
+		'state_topic': c_s.mqtt_sensor_topic + info,
+		'value_template': '{{ value_json.' + fake_names[i] + ' }}',
+		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'availability_topic': c_s.mqtt_availability_topic,
+		'device': device_values,
+		'entity_category': 'diagnostic',
+		'icon': 'mdi:text-box-outline',
+		'retain': True
+	}
+	configs[i] = json.dumps(dictionaries[name])
+
+	i += 1
+	route.append(1)
+	names.append(1)
+	fake_names.append(1)
+	real_names.append(1)
+	configs.append(1)
+	config_topics.append(1)
+	route[i] = False
 	fake_names[i] = 'connected_to'
 	real_names[i] = 'connected_to'
 	name = info_n + fake_names[i]
