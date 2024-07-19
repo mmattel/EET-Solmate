@@ -61,15 +61,11 @@ async def _async_timer(timer_value):
 	# run an async timer
 	await asyncio.sleep(timer_value)
 
-def timer_wait(merged_config, timer_name, add_log = True, mqtt_command = False):
+def timer_wait(merged_config, timer_name, process_queue = True):
 	# wait the number of seconds passed via the name as argument
 
 	# mqtt_queue is defined on the module level
 	global mqtt_queue
-
-	if add_log:
-		# log at all, but decide where
-		logging('Waiting: ' + timer_name + ': ' + str(merged_config[timer_name]) + 's', merged_config)
 
 	# wait, but let other tasks like websocket or mqtt do its backend stuff.
 	# timer.sleep would hard block that
@@ -79,13 +75,16 @@ def timer_wait(merged_config, timer_name, add_log = True, mqtt_command = False):
 	for x in range(merged_config[timer_name] * 2):
 		# check if the queue has an item to process. in case exit the for loop
 		# but only if there is no processing of an mqtt command like reboot
-		# there we have already a mqtt_queue item and we must pass the waiting time 
-		if mqtt_command == False:
+		# there we have already a mqtt_queue item and we must pass the waiting time
+		if process_queue:
+			# if mqtt is not active, there will also never be an element added to the queue
 			if mqtt_queue.qsize() != 0:
 				break
 		create_async_loop().run_until_complete(_async_timer(0.5))
 
 def restart_program(merged_config, counter=0, mqtt=False):
+	# though not longer necessary and used, we keep this function. who knows...
+
 	# this restarts the program like you would have started it manually again
 	# used for events where it is best to start from scratch
 

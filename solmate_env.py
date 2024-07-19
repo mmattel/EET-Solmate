@@ -136,6 +136,10 @@ def _add_optional_env(version):
 	add_optional.setdefault('timer_conn_err', 10)
 	add_optional.setdefault('timer_live', 30)
 	add_optional.setdefault('timer_reboot', 180)
+	add_optional.setdefault('timer_attempt_restart', 3)
+	# add an internal only zero value timer = no waiting time
+	# not exposed to .env-sample
+	add_optional.setdefault('timer_zero', 0)
 
 	# these are the currently known default values extracted from the webUI
 	add_optional.setdefault('default_boost_set_time', 600)

@@ -1,5 +1,15 @@
 # Changelog
 
+* With version 6.2.0, the following changes have been implemented:
+  * There are no new functionalities BUT:\
+    A big refactoring of error handling has been made. Formerly, the program restarted on most of the errors.
+    Now they are covered in an ever true while loop. This is especially true for the websocket (solmate)
+    or mqtt class . This loop is only exited and the program ended hitting ctrl-c, service stop or an error
+    that cant be covered which then is anyways outside the scope. Selecting a minor version jump, because this
+    change is relevant.
+  * The solmate reboot function now respects the above handling and the log shows correct steps.
+  * Due to the new error handling, sent values via MQTT during any websocket connection loss are processed
+    after reconnection. First in, first out.
 * With version 6.1.0, the following changes have been implemented:
   * On special request, the info section now shows the version of this SW (esham).
 * With version 6.0.0, the following changes have been implemented:

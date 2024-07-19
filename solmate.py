@@ -15,6 +15,7 @@ import solmate_websocket as smws
 
 # 2024.07
 version = '6.1.0'
+merged_config = {}
 
 def print_request_response(route, response):
 	# print response in formatted or unformatted json
@@ -47,38 +48,20 @@ def query_once_a_day(smws_conn, route, data, merged_config, mqtt, print_response
 		if mqtt:
 			mqtt.send_sensor_update_message(response, endpoint)
 
-def main(version):
-
-	# get envvars to configure access either from file or from os/docker envvars
-	merged_config = env.process_env(version)
-
-	# get the general program config data
-	print_response = merged_config['general_print_response']
-
-	# initialize colors for output, needed for Windows
-	if sys.platform == 'win32':
-		os.system('color')
-
-    # check for package versions because of breaking changes in libraries used
-	check.package_version(merged_config)
-
-	# connect and authenticate, don't continue if this fails
-	if 'eet_server_uri' not in merged_config.keys():
-		# if the uri key is not present, exit.
-		# if the uri key is present but empty or wrong, the error can and will be catched below
-		utils.logging('\'eet_server_uri\' was not defined in the configuration, exiting.', merged_config)
-		sys.exit()
+def connect_solmate(merged_config):
 
 	try:
 		# Initialize websocket
+		# when en error occurs during connenction we wait 'timer_offline', part of the exception
 		smws_conn = smws.connect_to_solmate(merged_config)
+		# when en error occurs during authentication we wait 'timer_offline', part of the exception
+		# here, most likely redirection errors may occur when connecting to the cloud
 		response = smws_conn.authenticate()
 
-	except Exception as err:
+	except Exception:
 		utils.logging('Failed creating connection/authentication to websocket class.', merged_config)
-		# wait until the next try, but do it with a full restart
-		utils.timer_wait(merged_config, 'timer_offline', True)
-		utils.restart_program(merged_config)
+		# re-raise the source error, it containes all necessary data
+		raise
 
 	# local
 	# check the presense and value for local access
@@ -113,8 +96,10 @@ def main(version):
 		# solmate is not online
 		utils.logging('Your SolMate is offline.', merged_config)
 		# wait until the next try, but do it with a full restart
-		utils.timer_wait(merged_config, 'timer_offline', True)
-		utils.restart_program(merged_config)
+
+	return smws_conn, online, local
+
+def check_routes(merged_config, smws_conn, local):
 
 	# check if we should *only* print the current API info response
 	# eases debugging the current published available routes
@@ -139,10 +124,14 @@ def main(version):
 	# some routes we know
 	api_available['local'] = local
 
+	return api_available
+
+def connect_mqtt(merged_config, api_available):
+
 	if merged_config['general_use_mqtt']:
 		# initialize and start mqtt
 		try:
-			mqtt = smmqtt.solmate_mqtt(merged_config, smws_conn, api_available)
+			mqtt = smmqtt.solmate_mqtt(merged_config, api_available)
 			mqtt.init_mqtt_client()
 			# note that signal handling must be done after initializing mqtt
 			# else the handler cant gracefully shutdown mqtt.
@@ -154,117 +143,216 @@ def main(version):
 			# ctrl-c
 			signal.signal(signal.SIGTERM, mqtt.signal_handler_sigterm)
 			# sudo systemctl stop eet.solmate.service
-		except Exception as err:
-			#utils.logging('MQTT connection failed: ' + str(err), merged_config)
-			#utils.logging('Failed creating connection/authentication to MQTT.', merged_config)
-			# wait until the next try, but do it with a full restart
-			utils.timer_wait(merged_config, 'timer_offline', True)
-			utils.restart_program(merged_config)
+
+		except Exception:
+			# either class initialisation or initializing mqtt failed
+			# in both cases we cant continue and the the program must end
+			raise
+
 	else:
 		mqtt = False
 
-	# get values from the 'get_solmate_info' route
-	# start a scheduler for once-a-day requests
-	# this content changes rarely, most likely the version number from time to time.
-	schedule.every().day.at('23:45').do(
-			query_once_a_day,
-			smws_conn=smws_conn,
-			route='get_solmate_info',
-			data={},
-			merged_config=merged_config,
-			mqtt=mqtt,
-			print_response=print_response,
-			endpoint='info'
-		)
+	return mqtt
 
-	# run all already defined tasks in the scheduler to get a first response
-	schedule.run_all()
+def main(version):
+
+	# get envvars to configure access either from file or from os/docker envvars
+	global merged_config
+	merged_config = env.process_env(version)
+
+	# get the general program config data
+	print_response = merged_config['general_print_response']
+
+	# initialize colors for output, needed for Windows
+	if sys.platform == 'win32':
+		os.system('color')
+
+    # check for package versions because of breaking changes in libraries used
+	check.package_version(merged_config)
+
+	# first validity config check
+	if 'eet_server_uri' not in merged_config.keys():
+		# if the uri key is not present, exit.
+		# if the uri key is present but empty or wrong, the error can and will be catched below
+		utils.logging('\'eet_server_uri\' was not defined in the configuration, exiting.', merged_config)
+		sys.exit()
+
+	smws_conn = None
+	mqtt = None
+	eet_connected = False
+	mqtt_connected = False
+	job_scheduler = False
 
 	while True:
-	# loop to continuosly request live values or process commands from mqtt
+		# because things can always happen, we check connectivity and establish if not connected
 
-		# only if mqtt is enabled
-		# process all write requests from the queue initiated by mqtt
-		if mqtt:
-			while utils.mqtt_queue.qsize() != 0:
-				# we have a message from mqtt because a value change or a button being pressed
-				# data can be a multi entry in the dictionary like boost,
-				# but for e.g. shutdown it is only one
-				route, data = utils.mqtt_queue.get()
-				key, value = list(data.items())[0]
+		try:
+			if not eet_connected:
+				# connect and authenticate, don't continue if this fails
+				# in case there is no connection, the timer value defines which timer to use
+				smws_conn, online, local = connect_solmate(merged_config)
+				eet_connected = True
+				api_available = check_routes(merged_config, smws_conn, local)
 
-				# reboot and shutdown use the same route/key and need an artificial mqtt entry
-				# special handling for pressing the reboot button
-				# we could also add a shutdown button to shut down the solmate - not implemented so far
-				if route == 'shutdown' and value == 'reboot':
-					response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
-					if response != False:
-						# if there is a response from the reboot command, print it
-						utils.logging(str(response), merged_config)
-					# this gets only processed if websocket stays connected despite the reboot command
-					# which would drop it (reboot was not accepted), better safe than sorry
-					utils.timer_wait(merged_config, 'timer_reboot', False, True)
-					mqtt.set_operating_state_normal()
+			if not mqtt_connected:
+				# connect and authenticate to mqtt if defined
+				# mqtt can either be false (mqtt not used) or contains the mqtt connection object
+				mqtt = connect_mqtt(merged_config, api_available)
+				# mqtt is now either false (dont use mqtt) or contains the mqtt object
+				# connected says, that technically initialisation was successful
+				mqtt_connected = True
 
-				# process all other queue elements
-				response = smws_conn.query_solmate(route, data, merged_config, mqtt)
-				if response == False:
-					#print(route, data, '\n')
-					# if there is a response from the reboot command, print it
-					utils.logging(str(response), merged_config)
-					#print('\n')
+			# get values from the 'get_solmate_info' route
+			# start a scheduler for once-a-day requests
+			# this content changes rarely, most likely the version number from time to time.
+			# the scheduler gets deleted if there is any connection issue and resetup.
+			schedule.every().day.at('23:45').do(
+					query_once_a_day,
+					smws_conn=smws_conn,
+					route='get_solmate_info',
+					data={},
+					merged_config=merged_config,
+					mqtt=mqtt,
+					print_response=print_response,
+					endpoint='info'
+				)
 
-		# get values from the 'live_values' route
-		response = smws_conn.query_solmate('live_values', {}, merged_config, mqtt)
-		if response != False:
-			if print_response:
-				print_request_response('live_values', response)
-			if mqtt:
-				mqtt.send_sensor_update_message(response, 'live')
+			# run all already defined tasks in the scheduler to get a first response
+			# only necessary to run once even if one of the connections are resetup
+			if not job_scheduler:
+				schedule.run_all()
+				job_scheduler = True
 
-		# get values from the 'get_injection_settings' route if the route is available
-		if api_available['hasUserSettings']:
-			response = smws_conn.query_solmate('get_injection_settings', {}, merged_config, mqtt)
-			if response != False:
-				if print_response:
-					print_request_response('get_injection_settings', response)
+			while True:
+			# loop to continuosly request live values or process commands from mqtt
+
 				if mqtt:
-					mqtt.send_sensor_update_message(response, 'get_injection')
+					# only if mqtt is enabled
+					# process all write requests from the queue initiated by mqtt
+					while utils.mqtt_queue.qsize() != 0:
+						# we have a message from mqtt because a value change or a button being pressed
+						# data can be a multi entry in the dictionary like boost,
+						# but for e.g. shutdown it is only one
+						route, data = utils.mqtt_queue.get()
+						key, value = list(data.items())[0]
 
-		# get values from the 'get_boost_injection' route if the route is available
-		if api_available['sun2plugHasBoostInjection']:
-			response = smws_conn.query_solmate('get_boost_injection', {}, merged_config, mqtt)
-			if response != False:
-				if print_response:
-					print_request_response('get_boost_injection', response)
+						# reboot and shutdown use the same route/key and need an artificial mqtt entry
+						# special handling for pressing the reboot button
+						# we could also add a shutdown button to shut down the solmate - not implemented so far
+						if route == 'shutdown' and value == 'reboot':
+							response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'}, merged_config, mqtt)
+							# nothing will executed after a reboot command
+							# there will be websocket connection errors due to loss of the connection
+							# setting the mqtt operatring state to normal is done in the exception
+
+						# process all other queue elements
+						response = smws_conn.query_solmate(route, data, merged_config, mqtt)
+						if response:
+							# {'success': True}
+							if list(response.keys())[0] != 'success':
+								#print(route, data, '\n')
+								err = 'Write back to Solmate failed: ' + str(route) + ' ' + str(data)
+								utils.logging(err, merged_config)
+								#print('\n')
+
+				# get values from the 'live_values' route
+				# we only expect solmate connection exceptions 
+				response = smws_conn.query_solmate('live_values', {}, merged_config, mqtt)
+				if response:
+					if print_response:
+						print_request_response('live_values', response)
+					if mqtt:
+						mqtt.send_sensor_update_message(response, 'live')
+
+				# get values from the 'get_injection_settings' route if the route is available
+				if api_available['hasUserSettings']:
+					response = smws_conn.query_solmate('get_injection_settings', {}, merged_config, mqtt)
+					if response:
+						if print_response:
+							print_request_response('get_injection_settings', response)
+						if mqtt:
+							mqtt.send_sensor_update_message(response, 'get_injection')
+
+				# get values from the 'get_boost_injection' route if the route is available
+				if api_available['sun2plugHasBoostInjection']:
+					response = smws_conn.query_solmate('get_boost_injection', {}, merged_config, mqtt)
+					if response:
+						if print_response:
+							print_request_response('get_boost_injection', response)
+						if mqtt:
+							mqtt.send_sensor_update_message(response, 'get_boost')
+
+				# check if there is a pending job due like the 'get_solmate_info'
+				schedule.run_pending()
+
+				# wait for the next round (async, non blocking for any other running background processes)
+				utils.timer_wait(merged_config, 'timer_live')
+
+		except Exception as err:
+			# error printing has been done in the solmate/mqtt class
+
+			if len(err.args) == 2:
+				# if there are 2 arguments in the raised error, we know we have raised it
+				# manually and can query the result for further processing
+				# err.args[0] is the source string returned
+				# err.args[1] is the timer string to be used
+				error_string = err.args[0]
+
 				if mqtt:
-					mqtt.send_sensor_update_message(response, 'get_boost')
+					if route == 'shutdown' and value == 'reboot':
+						# shutdown needs a special timer and not the one coming from the exception
+						# because that one is too short and we would finally end up in timer_offline
+						timer_to_use = 'timer_reboot'
+				else:
+					timer_to_use = err.args[1]
 
-		# check if there is a pending job due like the 'get_solmate_info'
-		schedule.run_pending()
+				seconds_to_wait = merged_config[timer_to_use]
+				string = ' - waiting ' + str(seconds_to_wait) + 's' + ' and reconnect.'
 
-		# wait for the next round (async, non blocking for any other running background processes)
-		utils.timer_wait(merged_config, 'timer_live', False)
+				# for safety, we remove the class object
 
-	if mqtt:
-		# whyever we came here, but to be fail safe,
-		# make a graceful shutdown, but do not raise a signal, the program terminated "normally".
-		mqtt.graceful_shutdown()
+				if error_string == 'websocket':
+					if smws_conn:
+						smws_conn = None
+					eet_connected = False
+					# the scheduler needs to be reset because the conenction object is no longer valid
+					schedule.clear()
+					utils.logging('Websocket connection error' + string, merged_config)
+					# do not process any queue in the timer as long we reestablish the connection
+					# set optional argument false, defaults to true
+					# note that mqtt may be running but websocket is disconnected
+					# this handling is for safety because one could send data via HA to MQTT
+					# any open queue elements will be processed after reestablishing the connection !
+					utils.timer_wait(merged_config, timer_to_use, False)
+					if mqtt:
+						# after the timer has ended, go back to normal in mqtt
+						mqtt.set_operating_state_normal()
+
+				if error_string == 'mqtt':
+					# this can only come if mqtt is active 
+					if mqtt:
+						mqtt = None
+					mqtt_connected = False
+					utils.logging('MQTT connection error' + string, merged_config)
+					utils.timer_wait(merged_config, timer_to_use)
+			else:
+				# the error was not one of the catched above and therefore not coverable
+				# re-raising so it can be handled outside (most likely to exit)
+				raise
+			# continue the while loop and resetup connections
+			pass
 
 if __name__ == '__main__':
 	try:
 		main(version)
+	except Exception:
+		# an error has happened before successfully getting the envvars in process_env
+		# to avoid running into an error, we define two mandatory envvars for logging, if not present
+		merged_config.setdefault('general_console_print', True)
+		merged_config.setdefault('general_console_timestamp', False)
+		# re-raise the error to be handled
+		raise
 	except KeyboardInterrupt:
-		try:
-			# check if merged_config has been initialized and has values
-			if merged_config:
-				pass
-		except NameError:
-			# the error has happened before successfully getting the envvars in process_env
-			# to avoid a print error, we define the two mandatory envvars for logging
-			merged_config = {}
-			merged_config['general_console_print'] = True
-			merged_config['general_console_timestamp'] = False
 		# avoid printing ^C on the console
 		# \r = carriage return (octal 015)
 		utils.logging('\rInterrupted by keyboard', merged_config)
@@ -273,3 +361,5 @@ if __name__ == '__main__':
 			sys.exit(130)
 		except SystemExit:
 			os._exit(130)
+	except Exception as err:
+		utils.logging(str(err), merged_config)
