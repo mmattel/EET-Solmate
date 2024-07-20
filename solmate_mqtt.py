@@ -29,7 +29,7 @@ class solmate_mqtt():
 		self.has_ha_config = False
 		self.first_query_has_run = False
 
-		utils.logging('Initializing the MQTT class.')
+		utils.logging('MQTT: Initializing the class')
 
 		# get the merged config and use mqtt relevant settings
 		self.mqtt_server = utils.merged_config['mqtt_server']
@@ -77,7 +77,7 @@ class solmate_mqtt():
 	def init_mqtt_client(self):
 		try:
 			# initialize the MQTT client. to see if it was successful, you must go to _on_connect
-			utils.logging('Initializing the MQTT client.')
+			utils.logging('MQTT: Initializing the client')
 
 			# protocol versions available
 			# MQTTv31  = 3
@@ -123,7 +123,7 @@ class solmate_mqtt():
 			)
 			self.mqttclient.loop_start()
 
-			#utils.logging('MQTT connection failed: ' + str(err))
+			#utils.logging('MQTT: Connection failed: ' + str(err))
 			#sys.exit()
 
 			# wait until on_connect returns a response
@@ -132,18 +132,16 @@ class solmate_mqtt():
 				time.sleep(1)
 
 			if not self.connect_ok:
-				# raise a connection error
-				# to handle it, a try/exception block must be present in solmate.py for mqtt
-				raise Exception('mqtt', 'timer_offline')
+				# when we fail connecting during initialisation, we have an auth error
+				sys.exit()
 
 		except Exception as err:
-			# print any other error that has occured but only if it was not raised by us
-			if len(err.args) != 2:
-				utils.logging(str(err))
+			# print any error that has occured
+			utils.logging(str(err))
 			raise Exception('mqtt', 'timer_offline')
 
 		# update HA topics to initialise correctly
-		utils.logging('Update MQTT topics for Homeassistant.')
+		utils.logging('MQTT: Update topics for Homeassistant')
 
 		# update the home assistant auto config info
 		# each item needs its own publish
@@ -204,7 +202,7 @@ class solmate_mqtt():
 		# the 'will_set' is not sent on graceful shutdown by design
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
-			utils.logging('\rShutting down MQTT gracefully.')
+			utils.logging('\rMQTT: Shutting down gracefully')
 			# there can be cases where the connection is already gone.
 			try:
 				publish_result = self.mqttclient.publish(
@@ -231,7 +229,7 @@ class solmate_mqtt():
 				raise KeyboardInterrupt
 			if self.signal_reason == 2:
 				# the program was politely asked to terminate, we log and grant that request.
-				utils.logging('\rMQTT terminated on external request.')
+				utils.logging('\rMQTT: Terminated on external request')
 				sys.exit()
 
 	def _on_connect(self, client, userdata, flags, reason_code, properties = None):
@@ -251,7 +249,7 @@ class solmate_mqtt():
 				retain = True
 			)
 			self.connect_ok = True
-			utils.logging('MQTT is connected and running.')
+			utils.logging('MQTT: Connected and running.')
 			# we should always subscribe via on_connect callback to be sure
 			# the subscriptions are persisted across reconnections like client.subscribe("$SYS/#")
 			# technically it is not necessary that the topic is already available.
@@ -263,9 +261,13 @@ class solmate_mqtt():
 				# now thre is was a reconnect, update the values for HA
 				self.send_sensor_update_message(self.remember_info_response, 'info')
 		else:
-			self.connect_ok = False
-			utils.logging('MQTT connection refused: ' + str(reason_code))
+			utils.logging('MQTT: Connection refused: ' + str(reason_code))
 			self.mqttclient.loop_stop()
+			if str(reason_code).lower().strip() == 'not authorized':
+				# if we are not authorized, no need for graceful_shutdown
+				# this is so critical that we exit immediately
+				utils.logging('MQTT: Login credentials mismatch. Hard exit.')
+			self.connect_ok = False
 
 	def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties = None):
 		# if we have not been connected formerly, it makes no sense to tell that we are now disconnected
@@ -278,7 +280,7 @@ class solmate_mqtt():
 
 			# https://github.com/eclipse/paho.mqtt.python/blob/master/src/paho/mqtt/reasoncodes.py
 			# https://github.com/eclipse/paho.mqtt.python/issues/827
-			utils.logging('MQTT disconnected: '
+			utils.logging('MQTT: Disconnected: '
 				+ str(reason_code.getName())
 				+ ', packet: '
 				+ str(PacketTypes.Names[reason_code.packetType])

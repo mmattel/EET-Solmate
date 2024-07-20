@@ -7,10 +7,15 @@
     or mqtt class . This loop is only exited and the program ended hitting ctrl-c, service stop or an error
     that cant be covered which then is anyways outside the scope. Selecting a minor version jump, because this
     change is relevant.
-  * The solmate reboot function now respects the above handling and the log shows correct steps.
+  * The Solmate reboot function now respects the above handling and the log shows correct steps.
   * Due to the new error handling, sent values via MQTT during any websocket connection loss are processed
     after reconnection. First in, first out.
-  * Some internal restructurings, variable improvements and cleanups
+  * Some internal restructurings, variable improvements and cleanups, improved logging (source: message),
+  * Authentication failure handling is greatly improved. If login credentials are wrong, the program ends.
+  * Solmate authentication is going into a timed retry loop, if the first authentication was successful
+    but the auth hash response failed. It was most likely temporary and will recover.
+  * Connection outages will go into a timed retry loop.
+  * Log with details if a MQTT to Solmate write was reported unsuccessful from the Solmate. 
 * With version 6.1.0, the following changes have been implemented:
   * On special request, the info section now shows the version of this SW (esham).
 * With version 6.0.0, the following changes have been implemented:

@@ -20,6 +20,7 @@ Internal name: `esham` --> **E**et **S**olmate **H**ome**A**ssistant **M**qtt
    * [Set Values via MQTT](#set-values-via-mqtt)
    * [Script Components](#script-components)
    * [Known Routes](#known-routes)
+   * [Connection and Authentication](#connection-and-authentication)
 
 ## General Info
 
@@ -237,3 +238,19 @@ See the linked [description](./docs/script-components.md) for details.
 ## Known Routes
 
 See the linked [description](./docs/known-routes.md) for details.
+
+## Connection and Authentication
+
+If a first connection and authentication was successful to both worlds (Solmate via websocket, MQTT),
+any disconnect will initiate a reconnect. While this is easy with MQTT as it has this functionality
+perfectly embedded even if you shut down/restart the MQTT host, it is a bit more complicated with
+websocket. If the connection can be reestablished by websocket automatically again, things are the
+same as with MQTT. But if this is not possible, for example if you reboot the Solmate and the
+connection is temporary gone, you can only act when trying to access websocket via the schedule
+timer and deal with the error reported.
+
+This means that a connection loss to the Solmate can only be recognized by accessing it.
+
+You will therefore see that multiple timers are acting in sequence when a Solmate connection loss
+occurs. Depending on the incident, different timers and reconnection methods are used. As more
+sever as longer it will take.
