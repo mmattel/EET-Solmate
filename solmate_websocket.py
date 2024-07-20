@@ -240,7 +240,7 @@ class connect_to_solmate:
 			if self.count_before_restart == utils.merged_config['timer_attempt_restart']:
 				# only on _consecutive_ unidentified issues
 				# if waiting the response time did not help, restart after the n-th try 
-				utils.logging('Too many failed consecutive connection attempts: ' + str(self.count_before_restart), utils.merged_config)
+				utils.logging('Too many failed consecutive connection attempts: ' + str(self.count_before_restart))
 				raise Exception('websocket', 'timer_conn_err')
 
 			utils.logging('A non breaking error happened, continuing.')

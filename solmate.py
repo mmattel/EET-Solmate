@@ -98,8 +98,12 @@ def main(version):
 				schedule.run_all()
 				job_scheduler = True
 
+			roboot_triggered = False
+
 			while True:
 			# loop to continuosly request live values or process commands from mqtt
+				route = None
+				value = None
 
 				if mqtt_conn:
 					# only if mqtt is active
@@ -115,6 +119,7 @@ def main(version):
 						# special handling for pressing the reboot button
 						# we could also add a shutdown button to shut down the solmate - not implemented so far
 						if route == 'shutdown' and value == 'reboot':
+							roboot_triggered = True
 							response = smws_conn.query_solmate('shutdown', {'shut_reboot': 'reboot'})
 							# nothing will executed after a reboot command
 							# there will be websocket connection errors due to loss of the connection
@@ -178,13 +183,13 @@ def main(version):
 					# re-raising so it can be handled outside (most likely to exit)
 					raise
 
-				if mqtt_conn:
-					if route == 'shutdown' and value == 'reboot':
-						# shutdown needs a special timer and not the one coming from the exception
-						# because that one is too short and we would finally end up in timer_offline
-						timer_to_use = 'timer_reboot'
-				else:
-					timer_to_use = err.args[1]
+				# now we know we are handling own errors
+				timer_to_use = str(err.args[1])
+
+				if roboot_triggered:
+					# shutdown needs a special timer and not the one coming from the exception
+					# because that one is too short and we would finally end up in timer_offline
+					timer_to_use = 'timer_reboot'
 
 				seconds_to_wait = str(utils.merged_config[timer_to_use])
 				print_string = ' - waiting ' + seconds_to_wait + 's' + ' and reconnect.'
@@ -205,9 +210,11 @@ def main(version):
 					# this handling is for safety because one could send data via HA to MQTT
 					# any open queue elements will be processed after reestablishing the connection !
 					utils.timer_wait(timer_to_use, False)
-					if mqtt_conn:
+					if roboot_triggered:
+						# we must come here because of the connection loss
 						# after the timer has ended, go back to normal in mqtt
 						mqtt_conn.set_operating_state_normal()
+						roboot_triggered = False
 
 				if error_string == 'mqtt':
 					# this can only come if mqtt is active 
