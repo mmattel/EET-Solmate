@@ -10,6 +10,7 @@
   * The solmate reboot function now respects the above handling and the log shows correct steps.
   * Due to the new error handling, sent values via MQTT during any websocket connection loss are processed
     after reconnection. First in, first out.
+  * Some internal restructurings, variable improvements and cleanups
 * With version 6.1.0, the following changes have been implemented:
   * On special request, the info section now shows the version of this SW (esham).
 * With version 6.0.0, the following changes have been implemented:

@@ -13,6 +13,9 @@ from datetime import datetime
 # this defines updates to be sent to solmate 
 mqtt_queue = queue.Queue()
 
+# provide a global available config variable 
+merged_config = {}
+
 # this is just a preparation if the the deprecation would pop up, but has currently NO
 # effect and uses the default method of asyncio.get_event_loop()
 # tests have shown that it breaks the 'if' code as any request to the solmate runs thru
@@ -38,8 +41,9 @@ def create_async_loop():
 		asyncio.set_event_loop(loop)
 	return loop
 
-def logging(message, merged_config):
+def logging(message):
 	# print logging data to console (conditional) and syslog (always)
+	global merged_config
 
 	# mandatory print the message on the console if defined
 	if merged_config['general_console_print']:
@@ -61,11 +65,12 @@ async def _async_timer(timer_value):
 	# run an async timer
 	await asyncio.sleep(timer_value)
 
-def timer_wait(merged_config, timer_name, process_queue = True):
+def timer_wait(timer_name, process_queue = True):
 	# wait the number of seconds passed via the name as argument
 
 	# mqtt_queue is defined on the module level
 	global mqtt_queue
+	global merged_config
 
 	# wait, but let other tasks like websocket or mqtt do its backend stuff.
 	# timer.sleep would hard block that
@@ -82,8 +87,23 @@ def timer_wait(merged_config, timer_name, process_queue = True):
 				break
 		create_async_loop().run_until_complete(_async_timer(0.5))
 
-def restart_program(merged_config, counter=0, mqtt=False):
+def print_request_response(route, response):
+	# print response in formatted or unformatted json
+	# note that the route is always printed to the console in color for ease of readability
+
+	# hardcoded, set to 0 to print unformatted as string
+	print_json = 1
+	if print_json == 1:
+		print(colored('\n' + route + ':', 'red'))
+		# ensure_ascii = False escapes characters like <, >, | etc
+		json_formatted_str = json.dumps(response, indent=2, ensure_ascii = False)
+		print(json_formatted_str)
+	else:
+		print(colored(route + ': ', 'red') + str(response))
+
+def restart_program(counter=0, mqtt=False):
 	# though not longer necessary and used, we keep this function. who knows...
+	global merged_config
 
 	# this restarts the program like you would have started it manually again
 	# used for events where it is best to start from scratch
