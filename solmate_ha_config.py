@@ -1,4 +1,5 @@
 import json
+import solmate_utils as utils
 
 # the ha config setup is quite big so it is defined in an own file making mqtt better readable.
 # the init parameters from 'self' are handed over and used as 'c_s'
@@ -28,14 +29,14 @@ def construct_ha_config_message(c_s):
 
 	# note that device_values must be populated
 	device_values = {}
-	device_values['identifiers'] = c_s.merged_config['mqtt_topic'] + '_' + c_s.merged_config['eet_serial_number'] # ['eet_solmate']
-	device_values['name'] = c_s.merged_config['mqtt_topic'] #'SOLMATE'
+	device_values['identifiers'] = utils.merged_config['mqtt_topic'] + '_' + utils.merged_config['eet_serial_number'] # ['eet_solmate']
+	device_values['name'] = utils.merged_config['mqtt_topic'] #'SOLMATE'
 	device_values['model'] = 'SOLMATE G'
 	device_values['manufacturer'] = 'EET Energy'
-	device_values['serial_number'] = c_s.merged_config['eet_serial_number']
+	device_values['serial_number'] = utils.merged_config['eet_serial_number']
 
-	if c_s.merged_config['eet_spare_serial_number']:
-		device_values['via_device'] = c_s.merged_config['eet_spare_serial_number']
+	if utils.merged_config['eet_spare_serial_number']:
+		device_values['via_device'] = utils.merged_config['eet_spare_serial_number']
 
 	# virtual topics
 	live = '/live'
@@ -70,7 +71,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + live,
 		'value_template': '{{ (value_json.' + fake_names[i] + " | as_timestamp()) | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
 		'availability_topic': c_s.mqtt_availability_topic,
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'device': device_values,
 		'icon': 'mdi:progress-clock',
 		'retain': True
@@ -95,7 +96,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'state_topic': c_s.mqtt_sensor_topic + live,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -122,7 +123,7 @@ def construct_ha_config_message(c_s):
 	'device_class': 'power',
 	'state_topic': c_s.mqtt_sensor_topic + live,
 	'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-	'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+	'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 	'availability_topic': c_s.mqtt_availability_topic,
 	'unit_of_measurement': 'W',
 	'device': device_values,
@@ -149,7 +150,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'state_topic': c_s.mqtt_sensor_topic + live,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -175,7 +176,7 @@ def construct_ha_config_message(c_s):
 		'name': name,
 		'state_topic': c_s.mqtt_sensor_topic + live,
 		'value_template': '{{ ((value_json.' + fake_names[i] + ' | float(0)) * 100) | round(1) }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'unit_of_measurement': '%',
 		'device': device_values,
@@ -202,7 +203,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'temperature',
 		'state_topic': c_s.mqtt_sensor_topic + live,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'unit_of_measurement': '°C',
 		'device': device_values,
@@ -228,7 +229,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'current',
 		'state_topic': c_s.mqtt_sensor_topic + live,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(2) }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'device': device_values,
 		'unit_of_measurement': 'A',
@@ -256,7 +257,7 @@ def construct_ha_config_message(c_s):
 		# no device class here as it is a string
 		'state_topic': c_s.mqtt_sensor_topic + info,
 		'value_template': '{{ value_json.' + fake_names[i] + ' | version }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'device': device_values,
 		'entity_category': 'diagnostic',
@@ -283,7 +284,7 @@ def construct_ha_config_message(c_s):
 		# no device class here as it is a string
 		'state_topic': c_s.mqtt_sensor_topic + info,
 		'value_template': '{{ value_json.' + fake_names[i] + ' }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'device': device_values,
 		'entity_category': 'diagnostic',
@@ -312,7 +313,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + info,
 		'value_template': '{{ (value_json.' + fake_names[i] + " | as_timestamp()) | timestamp_custom('%Y-%m-%d %H:%M:%S') }}",
 		'availability_topic': c_s.mqtt_availability_topic,
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'device': device_values,
 		'entity_category': 'diagnostic',
 		'icon': 'mdi:clock-time-ten',
@@ -338,7 +339,7 @@ def construct_ha_config_message(c_s):
 		# no device class here as it is a string
 		'state_topic': c_s.mqtt_sensor_topic + info,
 		'value_template': '{{ value_json.' + fake_names[i] + ' }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'device': device_values,
 		'entity_category': 'diagnostic',
@@ -365,7 +366,7 @@ def construct_ha_config_message(c_s):
 		# no device class here as it is a string
 		'state_topic': c_s.mqtt_sensor_topic + info,
 		'value_template': '{{ value_json.' + fake_names[i] + ' }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'device': device_values,
 		'entity_category': 'diagnostic',
@@ -392,7 +393,7 @@ def construct_ha_config_message(c_s):
 		# no device class here as it is a string
 		'state_topic': c_s.mqtt_sensor_topic + info,
 		'value_template': '{{ value_json.' + fake_names[i] + ' }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': c_s.mqtt_availability_topic,
 		'device': device_values,
 		'entity_category': 'diagnostic',
@@ -421,7 +422,7 @@ def construct_ha_config_message(c_s):
 		'name': name,
 		'command_topic': c_s.mqtt_button_topic + '/command/' + fake_names[i],
 		'availability_topic': dynamic_topic,
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'value_template': '{{ value_json.' + fake_names[i] + ' }}',
 		'device': device_values,
 		'entity_category': 'config',
@@ -453,7 +454,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'state_topic': c_s.mqtt_sensor_topic + get_injection,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id':utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -480,7 +481,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'state_topic': c_s.mqtt_sensor_topic + get_injection,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id':utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -506,7 +507,7 @@ def construct_ha_config_message(c_s):
 		'name': name,
 		'state_topic': c_s.mqtt_sensor_topic + get_injection,
 		'value_template': '{{ ((value_json.' + fake_names[i] + ' | float(0)) | round(1)) }}',
-		'unique_id': c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': '%',
 		'device': device_values,
@@ -538,7 +539,7 @@ def construct_ha_config_message(c_s):
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 's',
 		# the name used can be read and written, so we need to distinguish
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_read_' + name,
+		'unique_id':utils.merged_config['eet_serial_number'] + '_read_' + name,
 		'device': device_values,
 		'icon': 'mdi:timer-play-outline',
 		'retain': True
@@ -564,7 +565,7 @@ def construct_ha_config_message(c_s):
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
 		# the name used can be read and written, so we need to distinguish
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_read_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_read_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -592,7 +593,7 @@ def construct_ha_config_message(c_s):
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 's',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'device': device_values,
 		'icon': 'mdi:av-timer',
 		'retain': True
@@ -617,7 +618,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
 		'value_template': '{{ (value_json.' + fake_names[i] + ' | float(0)) | round(1) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -645,7 +646,7 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': c_s.merged_config['default_boost_injection_wattage'],
+		'max': utils.merged_config['default_boost_injection_wattage'],
 		'min': 0, # hardcoded, see note in solmate_env.py
 		'step': 5,
 		'mode': 'slider',
@@ -653,7 +654,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -678,14 +679,14 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': c_s.merged_config['default_max_boost_time'],
-		'min': c_s.merged_config['default_min_boost_time'],
+		'max': utils.merged_config['default_max_boost_time'],
+		'min': utils.merged_config['default_min_boost_time'],
 		'step': 60,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_boost,
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 's',
 		'device': device_values,
@@ -712,7 +713,7 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': c_s.merged_config['default_user_maximum_injection'],
+		'max': utils.merged_config['default_user_maximum_injection'],
 		'min': 0,
 		'step': 5,
 		'mode': 'slider',
@@ -720,7 +721,7 @@ def construct_ha_config_message(c_s):
 		'device_class': 'power',
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -745,15 +746,15 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': c_s.merged_config['default_user_maximum_injection'],
-		'min': c_s.merged_config['default_user_minimum_injection'],
+		'max': utils.merged_config['default_user_maximum_injection'],
+		'min': utils.merged_config['default_user_minimum_injection'],
 		'step': 5,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_injection, 
 		'device_class': 'power',
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': 'W',
 		'device': device_values,
@@ -778,14 +779,14 @@ def construct_ha_config_message(c_s):
 	dictionaries[name] = {
 		'name': name,
 		'entity_category': 'config',
-		'max': c_s.merged_config['default_max_battery'], # hardcoded, see note in solmate_env.py
-		'min': c_s.merged_config['default_user_minimum_battery_percentage'],
+		'max': utils.merged_config['default_max_battery'], # hardcoded, see note in solmate_env.py
+		'min': utils.merged_config['default_user_minimum_battery_percentage'],
 		'step': 5,
 		'mode': 'slider',
 		'state_topic': c_s.mqtt_sensor_topic + get_injection, 
 		'command_topic': c_s.mqtt_number_topic + '/' + fake_names[i],
 		'value_template': '{{ value_json.' + fake_names[i] + ' | int(0) }}',
-		'unique_id':c_s.merged_config['eet_serial_number'] + '_' + name,
+		'unique_id': utils.merged_config['eet_serial_number'] + '_' + name,
 		'availability_topic': dynamic_topic,
 		'unit_of_measurement': '%',
 		'device': device_values,

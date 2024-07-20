@@ -13,10 +13,8 @@ from paho.mqtt.packettypes import PacketTypes
 
 class solmate_mqtt():
 
-	def __init__(self, merged_config, smws_conn, api_available):
+	def __init__(self, api_available):
 		# initialize MQTT with parameters
-		self.merged_config=merged_config
-		self.smws_conn = smws_conn
 		self.api_available = api_available
 		self.connect_ok = None
 		self.signal_reason = 0
@@ -31,17 +29,17 @@ class solmate_mqtt():
 		self.has_ha_config = False
 		self.first_query_has_run = False
 
-		utils.logging('Initializing the MQTT class.', self.merged_config)
+		utils.logging('Initializing the MQTT class.')
 
 		# get the merged config and use mqtt relevant settings
-		self.mqtt_server = self.merged_config['mqtt_server']
-		self.mqtt_port = int(self.merged_config['mqtt_port'])
-		self.mqtt_username = self.merged_config['mqtt_username']
-		self.mqtt_password = self.merged_config['mqtt_password']
-		self.mqtt_client_id = self.merged_config['mqtt_client_id']
-		self.mqtt_topic = self.merged_config['mqtt_topic']
-		self.mqtt_prefix = self.merged_config['mqtt_prefix']
-		self.mqtt_ha = self.merged_config['mqtt_ha']
+		self.mqtt_server = utils.merged_config['mqtt_server']
+		self.mqtt_port = int(utils.merged_config['mqtt_port'])
+		self.mqtt_username = utils.merged_config['mqtt_username']
+		self.mqtt_password = utils.merged_config['mqtt_password']
+		self.mqtt_client_id = utils.merged_config['mqtt_client_id']
+		self.mqtt_topic = utils.merged_config['mqtt_topic']
+		self.mqtt_prefix = utils.merged_config['mqtt_prefix']
+		self.mqtt_ha = utils.merged_config['mqtt_ha']
 
 		# https://www.home-assistant.io/integrations/mqtt/#discovery-topic
 		# <discovery_prefix>/<component>/[<node_id>/]<object_id>/config
@@ -77,67 +75,75 @@ class solmate_mqtt():
 		self.graceful_shutdown()
 
 	def init_mqtt_client(self):
-		# initialize the MQTT client. to see if it was successful, you must go to _on_connect
-		utils.logging('Initializing the MQTT client.', self.merged_config)
+		try:
+			# initialize the MQTT client. to see if it was successful, you must go to _on_connect
+			utils.logging('Initializing the MQTT client.')
 
-		# protocol versions available
-		# MQTTv31  = 3
-		# MQTTv311 = 4
-		# MQTTv5   = 5
+			# protocol versions available
+			# MQTTv31  = 3
+			# MQTTv311 = 4
+			# MQTTv5   = 5
 
-		self.mqttclient = mqtt.Client(
-			mqtt.CallbackAPIVersion.VERSION2,
-			protocol = mqtt.MQTTv5,
-			client_id = self.mqtt_client_id
-		)
-		self.mqttclient.on_connect = self._on_connect
-		self.mqttclient.on_disconnect = self._on_disconnect
-		#self.mqttclient.on_publish = self._on_publish	  # uncomment for testing purposes
-		self.mqttclient.on_message = self._on_message
-		self.mqttclient.username_pw_set(
-			self.mqtt_username,
-			self.mqtt_password
-		)
-		self.mqttclient.will_set(
-			self.mqtt_availability_topic,
-			payload = 'offline',
-			qos = 0,
-			retain = True
-		)
+			self.mqttclient = mqtt.Client(
+				mqtt.CallbackAPIVersion.VERSION2,
+				protocol = mqtt.MQTTv5,
+				client_id = self.mqtt_client_id
+			)
+			self.mqttclient.on_connect = self._on_connect
+			self.mqttclient.on_disconnect = self._on_disconnect
 
-		# to make the code work with both MQTTv5 and MQTTv3.1.1 we need to set the properties object to None
-		# server/port issues are handled here
-		self.mqttclient.connect(
-			self.mqtt_server,
-			port = self.mqtt_port,
-			# http://www.steves-internet-guide.com/mqtt-keep-alive-by-example/
-			# no need to set this value with paho-mqtt
-			# this avoids on the broker the following message pairs beling logged
-			# "Client solmate_mqtt closed its connection.
-			# "Client xyz closed its connection.
-			#keepalive = 70,
-			bind_address = '',
-			bind_port = 0,
-			clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY,
-			properties = None
-		)
-		self.mqttclient.loop_start()
+			#self.mqttclient.on_publish = self._on_publish	  # uncomment for testing purposes
+			self.mqttclient.on_message = self._on_message
+			self.mqttclient.username_pw_set(
+				self.mqtt_username,
+				self.mqtt_password
+			)
+			self.mqttclient.will_set(
+				self.mqtt_availability_topic,
+				payload = 'offline',
+				qos = 0,
+				retain = True
+			)
 
-		#utils.logging('MQTT connection failed: ' + str(err), self.merged_config)
-		#sys.exit()
+			# to make the code work with both MQTTv5 and MQTTv3.1.1 we need to set the properties object to None
+			# server/port issues are handled here
+			self.mqttclient.connect(
+				self.mqtt_server,
+				port = self.mqtt_port,
+				# http://www.steves-internet-guide.com/mqtt-keep-alive-by-example/
+				# no need to set this value with paho-mqtt
+				# this avoids on the broker the following message pairs beling logged
+				# "Client solmate_mqtt closed its connection.
+				# "Client xyz closed its connection.
+				#keepalive = 70,
+				bind_address = '',
+				bind_port = 0,
+				clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+				properties = None
+			)
+			self.mqttclient.loop_start()
 
-		# wait until on_connect returns a response
-		while self.connect_ok == None:
-			# wait until the connection is either established or failed (like user/pwd typo)
-			time.sleep(1)
+			#utils.logging('MQTT connection failed: ' + str(err))
+			#sys.exit()
 
-		if not self.connect_ok:
-			# raise a connection error
-			# to handle it, a try/exception block must be present in solmate.py for mqtt
-			raise Exception('MQTT on_connect failed')
+			# wait until on_connect returns a response
+			while self.connect_ok == None:
+				# wait until the connection is either established or failed (like user/pwd typo)
+				time.sleep(1)
+
+			if not self.connect_ok:
+				# raise a connection error
+				# to handle it, a try/exception block must be present in solmate.py for mqtt
+				raise Exception('mqtt', 'timer_offline')
+
+		except Exception as err:
+			# print any other error that has occured but only if it was not raised by us
+			if len(err.args) != 2:
+				utils.logging(str(err))
+			raise Exception('mqtt', 'timer_offline')
 
 		# update HA topics to initialise correctly
-		utils.logging('Update MQTT topics for Homeassistant.', self.merged_config)
+		utils.logging('Update MQTT topics for Homeassistant.')
 
 		# update the home assistant auto config info
 		# each item needs its own publish
@@ -188,7 +194,6 @@ class solmate_mqtt():
 				if 'command_topic' in self.configs[i]:
 					y = json.loads(self.configs[i])
 					command_topic = y['command_topic']
-					#print(x)
 					self.mqttclient.subscribe(
 						command_topic,
 						options = None,
@@ -199,7 +204,7 @@ class solmate_mqtt():
 		# the 'will_set' is not sent on graceful shutdown by design
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
-			utils.logging('\rShutting down MQTT gracefully.', self.merged_config)
+			utils.logging('\rShutting down MQTT gracefully.')
 			# there can be cases where the connection is already gone.
 			try:
 				publish_result = self.mqttclient.publish(
@@ -209,7 +214,9 @@ class solmate_mqtt():
 					retain = True,
 					properties = None
 				)
-				publish_result.wait_for_publish() 
+				# max wait 4 sec to get the message published.
+				# there can be cases where this would run forever
+				publish_result.wait_for_publish(4) 
 				self.mqttclient.disconnect()
 				self.mqttclient.loop_stop()
 			except Exception:
@@ -221,12 +228,10 @@ class solmate_mqtt():
 			# 2 ... sigterm (sudo systemctl stop eet.solmate.service)
 			if self.signal_reason == 1:
 				# (re) raise the kbd interrupt to proper exit like via __main__
-				# but NOT when triggerd from the solmate class during a restart, as a restart
-				# is NOT a hard interrupt which is triggered via the solmate_class: 'query_solmate'.
 				raise KeyboardInterrupt
 			if self.signal_reason == 2:
 				# the program was politely asked to terminate, we log and grant that request.
-				utils.logging('\rTerminated on request.', self.merged_config)
+				utils.logging('\rMQTT terminated on external request.')
 				sys.exit()
 
 	def _on_connect(self, client, userdata, flags, reason_code, properties = None):
@@ -246,16 +251,20 @@ class solmate_mqtt():
 				retain = True
 			)
 			self.connect_ok = True
-			utils.logging('MQTT is connected and running.', self.merged_config)
+			utils.logging('MQTT is connected and running.')
 			# we should always subscribe via on_connect callback to be sure
 			# the subscriptions are persisted across reconnections like client.subscribe("$SYS/#")
 			# technically it is not necessary that the topic is already available.
 			# will also trigger on disconnect and reconnect
 			self._do_mqtt_subscriptions()
 
+			if self.first_query_has_run:
+				# there was a disconnect and we have info values that are remembered
+				# now thre is was a reconnect, update the values for HA
+				self.send_sensor_update_message(self.remember_info_response, 'info')
 		else:
 			self.connect_ok = False
-			utils.logging('MQTT connection refused: ' + str(reason_code), self.merged_config)
+			utils.logging('MQTT connection refused: ' + str(reason_code))
 			self.mqttclient.loop_stop()
 
 	def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties = None):
@@ -272,8 +281,8 @@ class solmate_mqtt():
 			utils.logging('MQTT disconnected: '
 				+ str(reason_code.getName())
 				+ ', packet: '
-				+ str(PacketTypes.Names[reason_code.packetType]),
-				self.merged_config)
+				+ str(PacketTypes.Names[reason_code.packetType])
+				)
 
 	def _on_publish(self, client, userdata, message, reason_codes, properties = None):
 		print(f'MQTT messages published: {message}')
@@ -376,7 +385,7 @@ class solmate_mqtt():
 
 			# first test, check if in range
 			if self._not_in_range(min_v, x, max_v):
-				utils.logging("Key " + "'" + str(key) + "': " + str(x) + " value out of range, using last valid: " + str(former), self.merged_config)
+				utils.logging("Key " + "'" + str(key) + "': " + str(x) + " value out of range, using last valid: " + str(former))
 				return former
 
 			# only if we have min/max injection
@@ -390,14 +399,14 @@ class solmate_mqtt():
 				if 'user_minimum_injection' in topic:
 					if x > max_e:
 						#print('min', x, max_e)
-						utils.logging("Key " + "'" + str(key) + "': " + str(x) + " value bigger than: " + str(max_e) + " using last valid: " + str(former), self.merged_config)
+						utils.logging("Key " + "'" + str(key) + "': " + str(x) + " value bigger than: " + str(max_e) + " using last valid: " + str(former))
 						return former
 
 				# next test, check if x < min_existing, it must be higher
 				if 'user_maximum_injection' in topic:
 					if x < min_e:
 						#print('max', x, min_v)
-						utils.logging("Key " + "'" + str(key) + "': " + str(x) + " value lower than: " + str(min_e) + " using last valid: " + str(former), self.merged_config)
+						utils.logging("Key " + "'" + str(key) + "': " + str(x) + " value lower than: " + str(min_e) + " using last valid: " + str(former))
 						return former
 			#print(x)
 			return x
@@ -407,7 +416,7 @@ class solmate_mqtt():
 			# which is definitely in the remember dictionary
 			# logging the issue with the fake name as this one is used in
 			# HA + the error cause + the errored value + the former valid value used
-			utils.logging("Key " + "'" + str(key) + "': " + str(err) + " using last valid: " + str(former), self.merged_config)
+			utils.logging("Key " + "'" + str(key) + "': " + str(err) + " using last valid: " + str(former))
 			return former
 
 	def _not_in_range(self, min_v, test, max_v):
@@ -428,51 +437,57 @@ class solmate_mqtt():
 			self.send_sensor_update_message(self.remember_info_response, 'info')
 			# new queue element = (route, key, value)
 			utils.mqtt_queue.put(('shutdown', {'shut_reboot': 'reboot'}))
-			utils.logging('Initializing SolMate Reboot.', self.merged_config)
+			utils.logging('Initializing SolMate Reboot.')
 
 	def send_sensor_update_message(self, response, endpoint):
-		# send a mqtt update message, the format is fixed
-		# remember some settings necessary for other tasks
-		if endpoint == 'info':
-			# add additional info that is not present in the original response
-			# remember the last response
-			self.remember_info_response = response
-			# fake a operating_state into the response if not present
-			response['operating_state'] = 'rebooting' if self.eet_reboot_in_progress else 'online'
-			# fake a connected_to into the response if not present
-			response['connected_to'] = 'local' if self.api_available['local'] else 'cloud'
-			# fake a esham sw version (this program) into the response, for sure not present
-			response['esham_version'] = self.merged_config['internal_esham_version']
+		# after connecting and initializing, this is the only location where we expect an error
+		# that leads to the need re-initializing mqtt
+		try:
+			# send a mqtt update message, the format is fixed
+			# remember some settings necessary for other tasks
+			if endpoint == 'info':
+				# add additional info that is not present in the original response
+				# remember the last response
+				self.remember_info_response = response
+				# fake a operating_state into the response if not present
+				response['operating_state'] = 'rebooting' if self.eet_reboot_in_progress else 'online'
+				# fake a connected_to into the response if not present
+				response['connected_to'] = 'local' if self.api_available['local'] else 'cloud'
+				# fake a esham sw version (this program) into the response, for sure not present
+				response['esham_version'] = utils.merged_config['internal_esham_version']
 
-		if endpoint == 'get_boost':
-			# remember the last response
-			self.remember_get_boost_response = response
+			if endpoint == 'get_boost':
+				# remember the last response
+				self.remember_get_boost_response = response
 
-		if endpoint == 'get_injection':
-			# remember the last response
-			self.remember_get_injection_response = response
+			if endpoint == 'get_injection':
+				# remember the last response
+				self.remember_get_injection_response = response
 
-		# note the endpoint: it MUST match one defined in 'ha_config.construct_ha_config_message'
-		# the endpoint groups entities together so they can be updated at once
-		# the sort order is not relevant
-		update = self._construct_update_message(response)
-		self.mqttclient.publish(
-			self.mqtt_sensor_topic + '/' + endpoint,
-			payload = update,
-			qos = self.mqtt_qos,
-			retain = True,
-			properties = None
-		)
+			# note the endpoint: it MUST match one defined in 'ha_config.construct_ha_config_message'
+			# the endpoint groups entities together so they can be updated at once
+			# the sort order is not relevant
+			update = self._construct_update_message(response)
+			self.mqttclient.publish(
+				self.mqtt_sensor_topic + '/' + endpoint,
+				payload = update,
+				qos = self.mqtt_qos,
+				retain = True,
+				properties = None
+			)
 
-		# we now have passed at minimum the first query/update run
-		# this is necessary to populate the remember.xxx dictionaries
-		#print('first query run')
-		self.first_query_has_run = True
+			# we now have passed at minimum the first query/update run
+			# this is necessary to populate the remember.xxx dictionaries
+			#print('first query run')
+			self.first_query_has_run = True
+		except:
+			self.graceful_shutdown()
+			raise Exception('mqtt', 'timer_conn_err')
 
 	def set_operating_state_normal(self):
 		# do the cleanup after successful rebooting
-		utils.logging('SolMate has Rebooted.', self.merged_config)
-		utils.logging('Back to normal operation.', self.merged_config)
+		utils.logging('SolMate has Rebooted.')
+		utils.logging('Back to normal operation.')
 		self._init_button_command_topic('reboot', '')
 		self.eet_reboot_in_progress = False
 		self.send_sensor_update_message(self.remember_info_response, 'info')
