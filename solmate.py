@@ -16,7 +16,7 @@ version = '6.2.0'
 def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint):
 	# send request but only when triggered by the scheduler
 	# use only for requests with routes that change rarely, more requests can be added
-	utils.logging('Once a day queries called by scheduler.')
+	utils.logging('Main: Once a day queries called by scheduler.')
 	response = smws_conn.query_solmate(route, data)
 	if response != False:
 		if not 'timestamp' in response:
@@ -32,30 +32,44 @@ def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint
 
 def main(version):
 
-	# get envvars to configure access either from file or from os/docker envvars
-	utils.merged_config = env.process_env(version)
+	try:
+		# basic initialisation
+		# get envvars to configure access either from file or from os/docker envvars
+		utils.merged_config = env.process_env(version)
 
-	print_response = utils.merged_config['general_print_response']
+		print_response = utils.merged_config['general_print_response']
 
-	# initialize colors for output, needed for Windows
-	if sys.platform == 'win32':
-		os.system('color')
+		# initialize colors for output, needed for Windows
+		if sys.platform == 'win32':
+			os.system('color')
 
-    # check for package versions because of breaking changes in libraries used
-	check.package_version()
+	    # check for package versions because of breaking changes in libraries used
+		check.package_version()
 
-	# first validity config check
-	if 'eet_server_uri' not in utils.merged_config.keys():
-		# if the uri key is not present, exit.
-		# if the uri key is present but empty or wrong, the error will be catched in the connection
-		utils.logging('\'eet_server_uri\' was not defined in the configuration, exiting.')
-		sys.exit()
+		# first validity config check for the solmates websocket address
+		if 'eet_server_uri' not in utils.merged_config.keys():
+			# if the uri key is not present, exit.
+			# if the uri key is present but empty or wrong, the error will be catched in the connection
+			utils.logging('Main: \'eet_server_uri\' was not defined in the configuration, exiting.')
+			sys.exit()
 
-	smws_conn = None
-	mqtt_conn = None
-	eet_connected = False
-	mqtt_connected = False
-	job_scheduler = False
+		smws_conn = None
+		mqtt_conn = None
+		eet_connected = False
+		mqtt_connected = False
+		job_scheduler = False
+		# necessary for very early failures during connecting which is before the while loop
+		reboot_triggered = False
+
+	except Exception as err:
+		# if the error happened before successfully getting the envvars in process_env
+		# construct the two mandatory envvars for logging, if not present
+		utils.merged_config.setdefault('general_console_print', True)
+		utils.merged_config.setdefault('general_console_timestamp', False)
+
+		# log the error that was uncoverable, re-raise the error to document its trace
+		utils.logging(str(err))
+		raise
 
 	while True:
 		# because things can always happen, we check connectivity and establish if not connected
@@ -128,10 +142,10 @@ def main(version):
 						# process all other queue elements
 						response = smws_conn.query_solmate(route, data)
 						if response:
-							# {'success': True}
-							if list(response.keys())[0] != 'success':
+							if 'success' in response and not response['success']:
+							# success returned false {'success': False}
 								#print(route, data, '\n')
-								err = 'Write back to Solmate failed: ' + str(route) + ' ' + str(data)
+								err = 'Main: Write back to Solmate failed: ' + str(route) + ' ' + str(data)
 								utils.logging(err)
 								#print('\n')
 
@@ -180,7 +194,8 @@ def main(version):
 
 				if error_string not in ['websocket', 'mqtt']:
 					# we always have argument [0] but we do not know if it was us
-					# re-raising so it can be handled outside (most likely to exit)
+					# log and re-raise to print the trace, ends in exit
+					utils.logging('Main: Uncoverabe multi-argument error: ' + str(err))
 					raise
 
 				# now we know we are handling own errors
@@ -203,7 +218,7 @@ def main(version):
 					eet_connected = False
 					# the scheduler needs to be reset because the conenction object is no longer valid
 					schedule.clear()
-					utils.logging('Websocket connection error' + print_string)
+					utils.logging('Main: Websocket: Connection error' + print_string)
 					# do not process any queue in the timer as long we reestablish the connection
 					# set optional argument false, defaults to true
 					# note that mqtt may be running but websocket is disconnected
@@ -221,34 +236,27 @@ def main(version):
 					if mqtt_conn:
 						mqtt_conn = None
 					mqtt_connected = False
-					utils.logging('MQTT connection error' + print_string)
+					utils.logging('Main: MQTT: Connection error' + print_string)
 					utils.timer_wait(timer_to_use)
 
 			else:
 				# the error was not one of the catched above and therefore not coverable
-				# re-raising so it can be handled outside (most likely to exit)
+				# log and re-raise to print the trace, ends in exit
+				utils.logging('Main: Uncoverabe single argument error: ' + str(err.args[0]))
 				raise
+
 			# continue the while loop and resetup connections
 			pass
 
 if __name__ == '__main__':
 	try:
 		main(version)
-	except Exception:
-		# an error has happened before successfully getting the envvars in process_env
-		# to avoid running into an error, we define two mandatory envvars for logging, if not present
-		utils.merged_config.setdefault('general_console_print', True)
-		utils.merged_config.setdefault('general_console_timestamp', False)
-		# re-raise the error to be handled
-		raise
 	except KeyboardInterrupt:
 		# avoid printing ^C on the console
 		# \r = carriage return (octal 015)
-		utils.logging('\rInterrupted by keyboard')
+		utils.logging('\rMain: Interrupted by keyboard')
 		try:
 			# terminate script by Control-C, exit code = 130
 			sys.exit(130)
 		except SystemExit:
 			os._exit(130)
-	except Exception as err:
-		utils.logging(str(err))

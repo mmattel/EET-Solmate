@@ -1,3 +1,4 @@
+import sys
 import signal
 import solmate_mqtt as smmqtt
 import solmate_utils as utils
@@ -10,15 +11,15 @@ def connect_solmate():
 
 	try:
 		# Initialize websocket
-		# when en error occurs during connenction we wait 'timer_offline', part of the exception
+		# when en error occurs during connenction, we wait 'timer_offline', part of the exception
 		smws_conn = smws.connect_to_solmate()
-		# when en error occurs during authentication we wait 'timer_offline', part of the exception
-		# here, most likely redirection errors may occur when connecting to the cloud
+		# when en error occurs during authentication we hard stop - the pwd is wrong
 		response = smws_conn.authenticate()
 
-	except Exception:
-		utils.logging('Failed creating connection/authentication to websocket class.')
-		# re-raise the source error, it containes all necessary data
+	except Exception as err:
+		# here, most likely redirection or hash errors occur when connecting to the cloud
+		utils.logging('Websocket: Failed creating connection/authentication to class.')
+		# re-raise the error, it will lead to a retry as it maybe a temporary issue
 		raise
 
 	# local
@@ -49,10 +50,10 @@ def connect_solmate():
 	# and with the automatic restart procedure, we endup in this questionaire here again
 	if online:
 		# solmate is online
-		utils.logging('SolMate is online.')
+		utils.logging('Websocket: SolMate is online')
 	else:
 		# solmate is not online
-		utils.logging('Your SolMate is offline.')
+		utils.logging('Websocket: Your SolMate is offline')
 		# wait until the next try, but do it with a full restart
 
 	return smws_conn, online, local
@@ -75,7 +76,7 @@ def connect_mqtt(api_available):
 			signal.signal(signal.SIGTERM, mqtt_conn.signal_handler_sigterm)
 			# sudo systemctl stop eet.solmate.service
 
-		except Exception:
+		except Exception as err:
 			# either class initialisation or initializing mqtt failed
 			# in both cases we cant continue and the the program must end
 			raise
