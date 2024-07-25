@@ -5,7 +5,6 @@ import time
 import schedule
 from termcolor import colored
 from datetime import datetime
-import solmate_check as check
 import solmate_connect as connect
 import solmate_env as env
 import solmate_utils as utils
