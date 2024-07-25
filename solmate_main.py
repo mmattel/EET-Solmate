@@ -42,7 +42,11 @@ def main(version):
 			os.system('color')
 
 	    # check for package versions because of breaking changes in libraries used
-		check.package_version()
+		# the paho-mqtt library must be major version 2 because of breaking changes from 1 --> 2
+		response, message = check.package_version('paho-mqtt', '2')
+		if not response:
+			utils.logging(message)
+			sys.exit()
 
 		# first validity config check for the solmates websocket address
 		if 'eet_server_uri' not in utils.merged_config.keys():
