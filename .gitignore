@@ -1,4 +1,5 @@
 .env
+./my_packages
 # from python virtual env
 bin/
 include/
