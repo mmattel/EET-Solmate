@@ -40,9 +40,9 @@ def main(version):
 		if sys.platform == 'win32':
 			os.system('color')
 
-	    # check for package versions because of breaking changes in libraries used
+	    # check for package versions because of possible breaking changes in libraries used
 		# the paho-mqtt library must be major version 2 because of breaking changes from 1 --> 2
-		response, message = check.package_version('paho-mqtt', '2')
+		response, version, message = check.package_version('paho-mqtt', '2')
 		if not response:
 			utils.logging(message)
 			sys.exit()

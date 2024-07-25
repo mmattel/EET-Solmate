@@ -115,17 +115,17 @@ def package_version(package, required_version):
 
 	if len(positions) >= 1:
 		if found_version.major != int(positions[0]):
-			return False, message
+			return False, found_version, message
 
 	if len(positions) >= 2:
 		if found_version.minor != int(positions[1]):
-			return False, message
+			return False, found_version, message
 
 	if len(positions) >= 3:
 		if found_version.patch != int(positions[2]):
-			return False, message
+			return False, found_version, message
 
-	return True, ""
+	return True, found_version, ""
 
 def restart_program(counter=0, mqtt=False):
 	# though not longer necessary and used, we keep this function. who knows...
