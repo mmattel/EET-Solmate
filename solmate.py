@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import solmate_main.py as main
+import solmate_main as main
 
 version = '6.3.0'
 
