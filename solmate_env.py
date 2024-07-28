@@ -91,7 +91,7 @@ def process_env(version):
 			# but there is no mqtt config defined
 			message = 'There is no MQTT configuration, exiting.'
 			sol_utils.merged_config = merged_config
-			sol_utils.logging(message, merged_config)
+			sol_utils.logging(message)
 			sys.exit()
 
 	#print(merged_config)
@@ -101,7 +101,7 @@ def process_env(version):
 	if not solmate_config:
 		message = 'There is no Solmate configuration, exiting.'
 		sol_utils.merged_config = merged_config
-		sol_utils.logging(message, merged_config)
+		sol_utils.logging(message)
 		sys.exit()
 
 	# hand over the final array to be globally available
