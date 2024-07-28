@@ -46,7 +46,7 @@ def import_helper(package_name, version, path):
 def get_available_version(package, required_version = ''):
 	# get the latest available version matchin a pattern that can be downloaded
 	# no required version provided means that just get the highest available
-	# note that the package not mandatory needs to have a semver compliant versioning!!
+	# note that the package does not mandatory need to have a semver compliant versioning!!
 	# means that 2 or 2.0 or 2.0.0 are all valid !
 
 	found = True
@@ -85,7 +85,7 @@ def get_available_version(package, required_version = ''):
 def get_installed_version(package, required_version = ''):
 	# check if a package is installed in the OS matches a pattern
 	# no required version provided means that that we only check if present
-	# note that the package not mandatory needs to have a semver compliant versioning!!
+	# note that the package does not mandatory need to have a semver compliant versioning!!
 	# means that 2 or 2.0 or 2.0.0 are all valid !
 
 	# https://discuss.python.org/t/the-fastest-way-to-make-a-list-of-installed-packages/23175/4

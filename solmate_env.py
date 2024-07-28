@@ -132,7 +132,7 @@ def _add_optional_env(version):
 
 	# internal only, define the minimum required paho-mqtt library version
 	# atm, we have only major, but this may change if there are incompatibilities with a minor one
-	# will match the highest semver available according the given value 2.x.y
+	# will match the highest available version according the given pattern like 2 or 2.x or 2.x.y
 	add_optional.setdefault('general_paho_mqtt_version', '2')
 
 	# internal only, define the location for custom special package installs
