@@ -90,7 +90,6 @@ def process_env(version):
 		if not mqtt_config:
 			# but there is no mqtt config defined
 			message = 'There is no MQTT configuration, exiting.'
-			# set key to use 'sol_utils.logging' because merged_config has not been populated
 			sol_utils.logging(message, merged_config)
 			sys.exit()
 
