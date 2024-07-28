@@ -1,40 +1,58 @@
 # Changelog
 
-* With version 6.2.0, the following changes have been implemented:
-  * There are no new functionalities BUT:\
-    A big refactoring of error handling has been made. Formerly, the program restarted on most of the errors.
-    Now they are covered in an ever true while loop. This is especially true for the websocket (solmate)
-    or mqtt class . This loop is only exited and the program ended hitting ctrl-c, service stop or an error
-    that cant be covered which then is anyways outside the scope. Selecting a minor version jump, because this
-    change is relevant.
-  * The Solmate reboot function now respects the above handling and the log shows correct steps.
-  * Due to the new error handling, sent values via MQTT during any websocket connection loss are processed
-    after reconnection. First in, first out.
-  * Some internal restructurings, variable improvements and cleanups, improved logging (source: message),
-  * Authentication failure handling is greatly improved. If login credentials are wrong, the program ends.
-  * Solmate authentication is going into a timed retry loop, if the first authentication was successful
-    but the auth hash response failed. It was most likely temporary and will recover.
-  * Connection outages will go into a timed retry loop.
-  * Log with details if a MQTT to Solmate write was reported unsuccessful from the Solmate. 
-* With version 6.1.0, the following changes have been implemented:
-  * On special request, the info section now shows the version of this SW (esham).
-* With version 6.0.0, the following changes have been implemented:
-  * Rework of BOOST and INJECTION handling. See the HA section in README the for more and important details.
-  * MQTT has now an error handling if the connection was initially not startable.
-    If the connection was once established, it reconnects automatically.
-  * Add the ability for a spare/replacement Solmate. See the `.env-sample` file for more details.
-  * Add new optional envvars to define limits. See the `.env-sample` file for more details.
-  * Global envvars are now optional, you can safely remove them from your config except for those
-    where you have deviated settings. See the `.env-sample` file for more details.
-  * Timer envvars are now optional, you can safely remove them from your config except for those
-    where you have deviated settings. See the `.env-sample` file for more details.
-  * The envvar `general_add_log` has been removed as it was not used in the code.
-    It was an orphand from ancient times.
-  * The newly added envvar `general_console_timestamp` will add a timestamp to the console printout.
-  * Set values via MQTT has been improved and an error handling implemented. You MUST use integer
-    (non fractioned numbers) values. See the README for more details.
-  * Code refactoring
-  * Documentation refactoring.
+## [Unreleased]
+
+* Switching to [keep a changelog](https://keepachangelog.com).
+* Removing 3 libraries from the requirements: `paho-mqtt`, `semver` and `termcolor`.\
+Note that when running in a an environment like using dedicated hardware, it is beneficial to install
+the `paho-mqtt` library because dynamic library loading and inporting is not necessary.
+* Implement dynamic loading and importing libraries.
+* Adapt the code to coexist with libraries that are installed with a lower version than needed by `esham`.
+This is in particular implemented for `paho-mqtt` but can be extended for other libraries too.
+
+## [6.2.0] - 2024-07
+
+* There are no new functionalities BUT:\
+  A big refactoring of error handling has been made. Formerly, the program restarted on most of the errors.
+  Now they are covered in an ever true while loop. This is especially true for the websocket (solmate)
+  or mqtt class . This loop is only exited and the program ended hitting ctrl-c, service stop or an error
+  that cant be covered which then is anyways outside the scope. Selecting a minor version jump, because this
+  change is relevant.
+* The Solmate reboot function now respects the above handling and the log shows correct steps.
+* Due to the new error handling, sent values via MQTT during any websocket connection loss are processed
+  after reconnection. First in, first out.
+* Some internal restructurings, variable improvements and cleanups, improved logging (source: message).
+* Authentication failure handling is greatly improved. If login credentials are wrong, the program ends.
+* Solmate authentication is going into a timed retry loop, if the first authentication was successful
+  but the auth hash response failed. It was most likely temporary and will recover.
+* Connection outages will go into a timed retry loop.
+* Log with details if a MQTT to Solmate write was reported unsuccessful from the Solmate. 
+
+## [6.1.0] - 2024-07
+
+* On special request, the info section now shows the version of this SW (esham).
+
+## [6.0.0] - 2024-07
+
+* Rework of BOOST and INJECTION handling. See the HA section in README the for more and important details.
+* MQTT has now an error handling if the connection was initially not startable.
+  If the connection was once established, it reconnects automatically.
+* Add the ability for a spare/replacement Solmate. See the `.env-sample` file for more details.
+* Add new optional envvars to define limits. See the `.env-sample` file for more details.
+* Global envvars are now optional, you can safely remove them from your config except for those
+  where you have deviated settings. See the `.env-sample` file for more details.
+* Timer envvars are now optional, you can safely remove them from your config except for those
+  where you have deviated settings. See the `.env-sample` file for more details.
+* The envvar `general_add_log` has been removed as it was not used in the code.
+  It was an orphand from ancient times.
+* The newly added envvar `general_console_timestamp` will add a timestamp to the console printout.
+* Set values via MQTT has been improved and an error handling implemented. You MUST use integer
+  (non fractioned numbers) values. See the README for more details.
+* Code refactoring
+* Documentation refactoring.
+
+## [5.0.0] - 2024-04-29
+
 * With version 5, the following changes have been implemented:
   * Enable some values to be set.
   * Values in HA are now grouped by meaning:\
@@ -42,33 +60,54 @@
   * Entities got new names --> **BREAKING**
   * A lot of code improvements and fixes.
   * For more details see the release notes in the tag.
-* With version 4, the following changes have been implemented:
-  * The documentation got revised.
-  * Updating some code to be prepared for possible changes in Python and library releases.
-  * When using HAOS:
-      - The scripts run in a Python virtual environment, you need to prepare this yourself.
-      - A library needed has been added. This library was not present in HAOS.
-      - Adding bash scripts to allow integration via HA shell scripts.
-      - Startup and running logs are written into a file as this is not integrateable into HA.
-  
-* With version 3, the following changes have been implemented:
-  * The MQTT code has been updated to fully use the capablities of the `paho-mqtt` v2 library.
-  * A check routine has been added if the v2 library has been installed. The script ends if not.
-  * When re-running the `check-requirements.py` script, you will get notified about the possibility
-  to additionally check and update other libraries like websockets. Post running several checks,
-  it is ok to do so.
-  * The MQTT code now uses the MQTTv5 protocol but is setup for MQTTv3.x compatibility.
 
-* With version 2.x, the code has been refactored and contains the following major improvements:
-  * You can now **reboot** your Solmate via HA / MQTT.  
+## [4.1.0] - 2024-04-02
+
+* Mainly improve HAOS integration.
+* Doc fixes.
+
+## [4.0.2] - 2024-03-08
+
+* Fix MQTT broker consecutive disconnect/connect messages.
+
+## [4.0.1] - 2024-03-03
+
+* Doc fixes.
+
+## [4.0.0] - 2024-02-29
+
+* The documentation got revised.
+* Updating some code to be prepared for possible changes in Python and library releases.
+* When using HAOS:
+    - The scripts run in a Python virtual environment, you need to prepare this yourself.
+    - A library needed has been added. This library was not present in HAOS.
+    - Adding bash scripts to allow integration via HA shell scripts.
+    - Startup and running logs are written into a file as this is not integrateable into HA.
+  
+## [3.0.0] - 2024-02-25
+
+* The MQTT code has been updated to fully use the capablities of the `paho-mqtt` v2 library.
+* A check routine has been added if the v2 library has been installed. The script ends if not.
+* When re-running the `check-requirements.py` script, you will get notified about the possibility
+to additionally check and update other libraries like websockets. Post running several checks,
+it is ok to do so.
+* The MQTT code now uses the MQTTv5 protocol but is setup for MQTTv3.x compatibility.
+
+## [2.0.0] - 2023-03-05
+
+* You can now **reboot** your Solmate via HA / MQTT.\
   This is beneficial if the Solmate SW needs a restart and you do not want to get outside.
   Consider that this is only possible if you use the local connection,
   as the internet connection does not provide this API route.
   When using the internet connection, though pressing reboot in HA, no action takes place.  
   This can bee identified as no actions are logged.
-  * Querying the Solmate is now generally much more stable.  
-   The timer used between queries is now asynchron which does not longer block websocket communication.
-  * You can now use the local connection as default instead using the internet version.  
-   Formerly, the local connection was much less stable than the internet one.  
-   Using local, you always have access to your Solmate as long there is power and you are more independent
-   compared to external server availability.
+* Querying the Solmate is now generally much more stable.\
+  The timer used between queries is now asynchron which does not longer block websocket communication.
+* You can now use the local connection as default instead using the internet version.\
+ Formerly, the local connection was much less stable than the internet one.  
+ Using local, you always have access to your Solmate as long there is power and you are more independent
+ compared to external server availability.
+
+## [1.0.0] - 2023-12-01
+
+Initial release.

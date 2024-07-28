@@ -2,8 +2,11 @@ import asyncio
 import os
 import queue
 import sys
+import semver
 import syslog
+import solmate_importmanager as im
 from datetime import datetime
+from importlib import metadata
 
 # functions here are provided for general availability
 
@@ -101,8 +104,86 @@ def print_request_response(route, response):
 	else:
 		print(colored(route + ': ', 'red') + str(response))
 
+def dynamic_import(pattern, path, query_name, install_name, imports, name_objects):
+	# dynamically install and import modules
+	# first, get the current package version installed
+	# if false we have a lower version, or it is missing at all and we need to do a special
+	# install and import. normally the library is installed upfront like when using a	
+	# os based install. but when using appdaemon, there may be already a library installed
+	# which can be lower and overwriting is not possible. therefore we fetch a custom defined
+	# and store/use it on a defined location outside the OS. with that, we can have multiple
+	# in parallel not conflicting
+	# note that install_name ('paho_mqtt') and query_name (query_name) may not be equal
+
+	response, version, message = im.get_installed_version(query_name, pattern)
+
+	if response:
+		# import the default existing one from the OS, it matches the requirement
+		#import paho.mqtt.client as mqtt
+		#from paho.mqtt.packettypes import PacketTypes
+		try:
+			for c in imports:
+				exec(c, globals())
+		except Exception as err:
+			logging('Utils: ' + str(err))
+			logging('Utils: Cant continue, hard exit')
+			sys.exit()
+	else:
+		try:
+			# get the highest matching version to install according the given pattern in x
+			matching_version = im.get_available_version(query_name, pattern)
+			# try to import that special package - if the package was already installed
+			# import will fail if the package was not installed before
+			with im.import_helper(install_name, matching_version, path):
+				#import paho.mqtt.client as mqtt
+				#from paho.mqtt.packettypes import PacketTypes
+				for c in imports:
+					exec(c, globals())
+
+		except Exception as err:
+			# install a specific version of the paho-mqtt package into a defined directory
+			if version:
+				# package found, but version does not match
+				message = 'MQTT: Found \'' + query_name + '\' ' + str(version) + ' which is lower than the required.'
+				# use the original message from the query above if no package installed in the OS
+
+			logging(message)
+			logging('MQTT: Special install of \'' + query_name + '\' ' + matching_version)
+
+			try:
+				# install the special package
+				im.install_version(install_name, matching_version, path)
+
+			except Exception as err:
+				logging('MQTT: An error occured installing \'' + paho-mqtt + '\' ' + str(version) + ' exiting.')
+				logging('MQTT: ' + str(err))
+				sys.exit()
+
+			# import this specifiv package version
+			with im.import_helper(install_name, matching_version, path):
+				#import paho.mqtt.client as mqtt
+				#from paho.mqtt.packettypes import PacketTypes
+				for c in imports:
+					exec(c, globals())
+
+	# after successful importing, return the objects so that the caller can use it
+	# because we came here, there are objetcs present and we dont need an exception handling
+	return_object = []
+	for x in name_objects:
+		return_object.append(_get_var_name(x))
+		#break
+	#sys.exit()
+	return return_object
+
+def _get_var_name(variable):
+	# get for the variable passed the object found
+	for name, value in globals().items():
+		#print(name,value)
+		if name is variable:
+			return value
+
+# though not longer necessary and used, we keep this function. who knows...
 def restart_program(counter=0, mqtt=False):
-	# though not longer necessary and used, we keep this function. who knows...
 	global merged_config
 
 	# this restarts the program like you would have started it manually again

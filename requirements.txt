@@ -3,21 +3,19 @@
 # the program complains if not, uncomment in case and re-run check_requitements.py
 # this can be OS dependent.
   
-asyncio
+##asyncio
 ##base64
 datetime
 ##hashlib
 ##json
 ##os
 ##queue
-paho-mqtt
+##paho-mqtt
 python-dotenv
-semver
-setuptools
+##setuptools
 schedule
 ##signal
 ##sys
 ##syslog
-termcolor
 ##time
 websockets
