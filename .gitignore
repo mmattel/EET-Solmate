@@ -1,7 +1,13 @@
+# live data
 .env
+testing/
+my_packages/
+__pycache__/
+
 # from python virtual env
 bin/
 include/
 lib/
 lib64/
 pyvenv.cfg
+

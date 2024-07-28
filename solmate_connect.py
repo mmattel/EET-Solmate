@@ -1,6 +1,5 @@
 import sys
 import signal
-import solmate_mqtt as smmqtt
 import solmate_utils as utils
 import solmate_websocket as smws
 
@@ -8,6 +7,7 @@ import solmate_websocket as smws
 # return solmate connection dependent api routes
 
 def connect_solmate():
+	# connect to the solmate via websocket
 
 	try:
 		# Initialize websocket
@@ -59,6 +59,11 @@ def connect_solmate():
 	return smws_conn, online, local
 
 def connect_mqtt(api_available):
+	# connect to the mqtt broker
+
+	# IMPORTANT: import the module here because we need to have 'solmate_env' executed first !
+	# if imported in main, the code outside the class in 'solmate_mqtt' will get executed missing data 
+	import solmate_mqtt as smmqtt
 
 	if utils.merged_config['general_use_mqtt']:
 		# initialize and start mqtt
