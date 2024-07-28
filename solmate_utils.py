@@ -2,7 +2,6 @@ import asyncio
 import os
 import queue
 import sys
-import semver
 import syslog
 import solmate_importmanager as im
 from datetime import datetime
