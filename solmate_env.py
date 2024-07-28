@@ -1,8 +1,8 @@
 import os
 import sys
-from dotenv import dotenv_values
 import json
 import solmate_utils as sol_utils
+from dotenv import dotenv_values
 
 def process_env(version):
 	# get all environment variables as dictionary
@@ -36,6 +36,7 @@ def process_env(version):
 	#print(json.dumps(merged_config, indent=2, sort_keys=True))
 
 	if not ok:
+		sol_utils.merged_config = merged_config
 		sol_utils.logging(message)
 		sys.exit()
 
@@ -89,6 +90,7 @@ def process_env(version):
 		if not mqtt_config:
 			# but there is no mqtt config defined
 			message = 'There is no MQTT configuration, exiting.'
+			sol_utils.merged_config = merged_config
 			sol_utils.logging(message, merged_config)
 			sys.exit()
 
@@ -98,10 +100,12 @@ def process_env(version):
 
 	if not solmate_config:
 		message = 'There is no Solmate configuration, exiting.'
+		sol_utils.merged_config = merged_config
 		sol_utils.logging(message, merged_config)
 		sys.exit()
 
-	return merged_config
+	# hand over the final array to be globally available
+	sol_utils.merged_config = merged_config
 
 def _add_optional_env(version):
 	# if the key does not exist, it is added with a default value.

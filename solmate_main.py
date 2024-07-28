@@ -30,11 +30,11 @@ def main(version):
 	try:
 		# basic initialisation
 		# get envvars to configure access either from file or from os/docker envvars
-		sol_utils.merged_config = sol_env.process_env(version)
+		sol_env.process_env(version)
 
 		print_response = sol_utils.merged_config['general_print_response']
 
-	    # the paho-mqtt library check has been moved into solmate_mqtt.py
+		# the paho-mqtt library check has been moved into solmate_mqtt.py
 
 		# first validity config check for the solmates websocket address
 		if 'eet_server_uri' not in sol_utils.merged_config.keys():
