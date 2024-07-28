@@ -36,7 +36,7 @@ def process_env(version):
 	#print(json.dumps(merged_config, indent=2, sort_keys=True))
 
 	if not ok:
-		sol_utils.logging(message, merged_config)
+		sol_utils.logging(message)
 		sys.exit()
 
 	full_config = {
