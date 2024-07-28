@@ -4,14 +4,14 @@ import json
 import time
 import schedule
 from datetime import datetime
-import solmate_connect as connect
-import solmate_env as env
-import solmate_utils as utils
+import solmate_connect as sol_connect
+import solmate_env as sol_env
+import solmate_utils as sol_utils
 
 def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint):
 	# send request but only when triggered by the scheduler
 	# use only for requests with routes that change rarely, more requests can be added
-	utils.logging('Main: Once a day queries called by scheduler.')
+	sol_utils.logging('Main: Once a day queries called by scheduler.')
 	response = smws_conn.query_solmate(route, data)
 	if response != False:
 		if not 'timestamp' in response:
@@ -21,7 +21,7 @@ def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint
 			# fake an operating_state into the response if not present, the content will be added in mqtt.
 			response['operating_state'] = ''
 		if print_response:
-			utils.print_request_response(route, response)
+			sol_utils.print_request_response(route, response)
 		if mqtt_conn:
 			mqtt_conn.send_sensor_update_message(response, endpoint)
 
@@ -30,17 +30,17 @@ def main(version):
 	try:
 		# basic initialisation
 		# get envvars to configure access either from file or from os/docker envvars
-		utils.merged_config = env.process_env(version)
+		sol_utils.merged_config = sol_env.process_env(version)
 
-		print_response = utils.merged_config['general_print_response']
+		print_response = sol_utils.merged_config['general_print_response']
 
 	    # the paho-mqtt library check has been moved into solmate_mqtt.py
 
 		# first validity config check for the solmates websocket address
-		if 'eet_server_uri' not in utils.merged_config.keys():
+		if 'eet_server_uri' not in sol_utils.merged_config.keys():
 			# if the uri key is not present, exit.
 			# if the uri key is present but empty or wrong, the error will be catched in the connection
-			utils.logging('Main: \'eet_server_uri\' was not defined in the configuration, exiting.')
+			sol_utils.logging('Main: \'eet_server_uri\' was not defined in the configuration, exiting.')
 			sys.exit()
 
 		smws_conn = None
@@ -54,11 +54,11 @@ def main(version):
 	except Exception as err:
 		# if the error happened before successfully getting the envvars in process_env
 		# construct the two mandatory envvars for logging, if not present
-		utils.merged_config.setdefault('general_console_print', True)
-		utils.merged_config.setdefault('general_console_timestamp', False)
+		sol_utils.merged_config.setdefault('general_console_print', True)
+		sol_utils.merged_config.setdefault('general_console_timestamp', False)
 
 		# log the error that was uncoverable, re-raise the error to document its trace
-		utils.logging(str(err))
+		sol_utils.logging(str(err))
 		raise
 
 	while True:
@@ -69,16 +69,16 @@ def main(version):
 			# the timer value in the error raised defines which timer to use
 			if not eet_connected:
 				# connect and authenticate, don't continue if this fails
-				smws_conn, online, local = connect.connect_solmate()
+				smws_conn, online, local = sol_connect.connect_solmate()
 
 				# some api's are only available depending on local or cloud connection
-				api_available = connect.check_routes(smws_conn, local)
+				api_available = sol_connect.check_routes(smws_conn, local)
 				eet_connected = True
 
 			if not mqtt_connected:
 				# connect and authenticate to mqtt if defined
 				# mqtt_conn can either be false (mqtt not used) or contains the mqtt connection object
-				mqtt_conn = connect.connect_mqtt(api_available)
+				mqtt_conn = sol_connect.connect_mqtt(api_available)
 				# connected says, that technically the initialisation was successful
 				mqtt_connected = True
 
@@ -112,11 +112,11 @@ def main(version):
 				if mqtt_conn:
 					# only if mqtt is active
 					# process all write requests from the queue initiated by mqtt
-					while utils.mqtt_queue.qsize() != 0:
+					while sol_utils.mqtt_queue.qsize() != 0:
 						# we have a message from mqtt because a value change or a button being pressed
 						# data can be a multi entry in the dictionary like boost,
 						# but for e.g. shutdown it is only one
-						route, data = utils.mqtt_queue.get()
+						route, data = sol_utils.mqtt_queue.get()
 						key, value = list(data.items())[0]
 
 						# reboot and shutdown use the same route/key and need an artificial mqtt entry
@@ -136,7 +136,7 @@ def main(version):
 							# success returned false {'success': False}
 								#print(route, data, '\n')
 								err = 'Main: Write back to Solmate failed: ' + str(route) + ' ' + str(data)
-								utils.logging(err)
+								sol_utils.logging(err)
 								#print('\n')
 
 				# get values from the 'live_values' route
@@ -144,7 +144,7 @@ def main(version):
 				response = smws_conn.query_solmate('live_values', {})
 				if response:
 					if print_response:
-						utils.print_request_response('live_values', response)
+						sol_utils.print_request_response('live_values', response)
 					if mqtt_conn:
 						mqtt_conn.send_sensor_update_message(response, 'live')
 
@@ -153,7 +153,7 @@ def main(version):
 					response = smws_conn.query_solmate('get_injection_settings', {})
 					if response:
 						if print_response:
-							utils.print_request_response('get_injection_settings', response)
+							sol_utils.print_request_response('get_injection_settings', response)
 						if mqtt_conn:
 							mqtt_conn.send_sensor_update_message(response, 'get_injection')
 
@@ -162,7 +162,7 @@ def main(version):
 					response = smws_conn.query_solmate('get_boost_injection', {})
 					if response:
 						if print_response:
-							utils.print_request_response('get_boost_injection', response)
+							sol_utils.print_request_response('get_boost_injection', response)
 						if mqtt_conn:
 							mqtt_conn.send_sensor_update_message(response, 'get_boost')
 
@@ -170,7 +170,7 @@ def main(version):
 				schedule.run_pending()
 
 				# wait for the next round (async, non blocking for any other running background processes)
-				utils.timer_wait('timer_live')
+				sol_utils.timer_wait('timer_live')
 
 		except Exception as err:
 			# error printing has been done in the solmate/mqtt class
@@ -185,7 +185,7 @@ def main(version):
 				if error_string not in ['websocket', 'mqtt']:
 					# we always have argument [0] but we do not know if it was us
 					# log and re-raise to print the trace, ends in exit
-					utils.logging('Main: Uncoverabe multi-argument error: ' + str(err))
+					sol_utils.logging('Main: Uncoverabe multi-argument error: ' + str(err))
 					raise
 
 				# now we know we are handling own errors
@@ -196,7 +196,7 @@ def main(version):
 					# because that one is too short and we would finally end up in timer_offline
 					timer_to_use = 'timer_reboot'
 
-				seconds_to_wait = str(utils.merged_config[timer_to_use])
+				seconds_to_wait = str(sol_utils.merged_config[timer_to_use])
 				print_string = ' - waiting ' + seconds_to_wait + 's' + ' and reconnect.'
 
 				# for safety, we remove the class object
@@ -208,13 +208,13 @@ def main(version):
 					eet_connected = False
 					# the scheduler needs to be reset because the conenction object is no longer valid
 					schedule.clear()
-					utils.logging('Main: Websocket: Connection error' + print_string)
+					sol_utils.logging('Main: Websocket: Connection error' + print_string)
 					# do not process any queue in the timer as long we reestablish the connection
 					# set optional argument false, defaults to true
 					# note that mqtt may be running but websocket is disconnected
 					# this handling is for safety because one could send data via HA to MQTT
 					# any open queue elements will be processed after reestablishing the connection !
-					utils.timer_wait(timer_to_use, False)
+					sol_utils.timer_wait(timer_to_use, False)
 					if reboot_triggered:
 						# we must come here because of the connection loss
 						# after the timer has ended, go back to normal in mqtt
@@ -226,13 +226,13 @@ def main(version):
 					if mqtt_conn:
 						mqtt_conn = None
 					mqtt_connected = False
-					utils.logging('Main: MQTT: Connection error' + print_string)
-					utils.timer_wait(timer_to_use)
+					sol_utils.logging('Main: MQTT: Connection error' + print_string)
+					sol_utils.timer_wait(timer_to_use)
 
 			else:
 				# the error was not one of the catched above and therefore not coverable
 				# log and re-raise to print the trace, ends in exit
-				utils.logging('Main: Uncoverabe single argument error: ' + str(err.args[0]))
+				sol_utils.logging('Main: Uncoverabe single argument error: ' + str(err.args[0]))
 				raise
 
 			# continue the while loop and resetup connections

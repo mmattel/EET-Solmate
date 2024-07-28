@@ -3,7 +3,7 @@ import os
 import queue
 import sys
 import syslog
-import solmate_importmanager as im
+import solmate_importmanager as sol_im
 from datetime import datetime
 from importlib import metadata
 
@@ -114,7 +114,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 	# in parallel not conflicting
 	# note that install_name ('paho_mqtt') and query_name (query_name) may not be equal
 
-	response, version, message = im.get_installed_version(query_name, pattern)
+	response, version, message = sol_im.get_installed_version(query_name, pattern)
 
 	if response:
 		# import the default existing one from the OS, it matches the requirement
@@ -130,10 +130,10 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 	else:
 		try:
 			# get the highest matching version to install according the given pattern in x
-			matching_version = im.get_available_version(query_name, pattern)
+			matching_version = sol_im.get_available_version(query_name, pattern)
 			# try to import that special package - if the package was already installed
 			# import will fail if the package was not installed before
-			with im.import_helper(install_name, matching_version, path):
+			with sol_im.import_helper(install_name, matching_version, path):
 				#import paho.mqtt.client as mqtt
 				#from paho.mqtt.packettypes import PacketTypes
 				for c in imports:
@@ -151,7 +151,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 
 			try:
 				# install the special package
-				im.install_version(install_name, matching_version, path)
+				sol_im.install_version(install_name, matching_version, path)
 
 			except Exception as err:
 				logging('MQTT: An error occured installing \'' + paho-mqtt + '\' ' + str(version) + ' exiting.')
@@ -159,7 +159,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 				sys.exit()
 
 			# import this specifiv package version
-			with im.import_helper(install_name, matching_version, path):
+			with sol_im.import_helper(install_name, matching_version, path):
 				#import paho.mqtt.client as mqtt
 				#from paho.mqtt.packettypes import PacketTypes
 				for c in imports:

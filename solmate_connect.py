@@ -1,7 +1,7 @@
 import sys
 import signal
-import solmate_utils as utils
-import solmate_websocket as smws
+import solmate_utils as sol_utils
+import solmate_websocket as sol_smws
 
 # code that connects to the respective classes and returns the connection object
 # return solmate connection dependent api routes
@@ -12,13 +12,13 @@ def connect_solmate():
 	try:
 		# Initialize websocket
 		# when en error occurs during connenction, we wait 'timer_offline', part of the exception
-		smws_conn = smws.connect_to_solmate()
+		smws_conn = sol_smws.connect_to_solmate()
 		# when en error occurs during authentication we hard stop - the pwd is wrong
 		response = smws_conn.authenticate()
 
 	except Exception as err:
 		# here, most likely redirection or hash errors occur when connecting to the cloud
-		utils.logging('Websocket: Failed creating connection/authentication to class.')
+		sol_utils.logging('Websocket: Failed creating connection/authentication to class.')
 		# re-raise the error, it will lead to a retry as it maybe a temporary issue
 		raise
 
@@ -26,10 +26,10 @@ def connect_solmate():
 	# check the presense and value for local access
 	# if the solmates subdomain is part of the URI
 	# local can either be true or false
-	if 'eet_local_subdomain' in utils.merged_config:
+	if 'eet_local_subdomain' in sol_utils.merged_config:
 		# only if the key is configured
 		# value_if_true if condition else value_if_false
-		local = True if utils.merged_config['eet_local_subdomain'] in utils.merged_config['eet_server_uri'] else False
+		local = True if sol_utils.merged_config['eet_local_subdomain'] in sol_utils.merged_config['eet_server_uri'] else False
 	else:
 		local = False
 
@@ -50,10 +50,10 @@ def connect_solmate():
 	# and with the automatic restart procedure, we endup in this questionaire here again
 	if online:
 		# solmate is online
-		utils.logging('Websocket: SolMate is online')
+		sol_utils.logging('Websocket: SolMate is online')
 	else:
 		# solmate is not online
-		utils.logging('Websocket: Your SolMate is offline')
+		sol_utils.logging('Websocket: Your SolMate is offline')
 		# wait until the next try, but do it with a full restart
 
 	return smws_conn, online, local
@@ -63,12 +63,12 @@ def connect_mqtt(api_available):
 
 	# IMPORTANT: import the module here because we need to have 'solmate_env' executed first !
 	# if imported in main, the code outside the class in 'solmate_mqtt' will get executed missing data 
-	import solmate_mqtt as smmqtt
+	import solmate_mqtt as sol_mmqtt
 
-	if utils.merged_config['general_use_mqtt']:
+	if sol_utils.merged_config['general_use_mqtt']:
 		# initialize and start mqtt
 		try:
-			mqtt_conn = smmqtt.solmate_mqtt(api_available)
+			mqtt_conn = sol_mmqtt.solmate_mqtt(api_available)
 			mqtt_conn.init_mqtt_client()
 			# note that signal handling must be done after initializing mqtt
 			# else the handler cant gracefully shutdown mqtt.
@@ -95,7 +95,7 @@ def check_routes(smws_conn, local):
 
 	# check if we should *only* print the current API info response
 	# eases debugging the current published available routes
-	if utils.merged_config['general_api_info']:
+	if sol_utils.merged_config['general_api_info']:
 		response = smws_conn.query_solmate('get_api_info', {})
 		print('\n\'get_api_info\' route info requested: \n')
 		print(json.dumps(response, ensure_ascii=False, indent=2, separators=(',', ': ')))

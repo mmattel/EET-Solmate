@@ -7,7 +7,7 @@ import sys
 import syslog
 import time
 import websockets.client
-import solmate_utils as utils
+import solmate_utils as sol_utils
 
 class connect_to_solmate:
 	# the class managing the connection to solmate (cloud or local)
@@ -18,14 +18,14 @@ class connect_to_solmate:
 	message_id = 0                              # continous message id
 
 	def __init__(self):
-		self.server_uri = utils.merged_config['eet_server_uri']
+		self.server_uri = sol_utils.merged_config['eet_server_uri']
 		self.count_before_restart = 0
 		self.message_id = 0
 		self.websocket = None
 		# set of mandatory keywords in the query response if the endpoint does not exist
 		self.err_kwds = {'Response:', 'NotImplemetedError'}
 
-		utils.logging('Websocket: Initializing connection')
+		sol_utils.logging('Websocket: Initializing connection')
 		self._create_websocket()
 
 	def _redirected_server(self, uri):
@@ -34,10 +34,10 @@ class connect_to_solmate:
 	def _create_websocket(self):
 		# create and connect to websocket
 		try:
-			utils.create_async_loop().run_until_complete(self._create_socket())
+			sol_utils.create_async_loop().run_until_complete(self._create_socket())
 		except Exception as err:
 			# the reason for the exception has been logged already, just exit
-			utils.logging('Websocket: Error: ' + str(self.server_uri))
+			sol_utils.logging('Websocket: Error: ' + str(self.server_uri))
 			raise Exception('websocket', 'timer_offline')
 
 	def _close_websocket(self):
@@ -48,17 +48,17 @@ class connect_to_solmate:
 	async def _create_socket(self):
 		# create a websocket and connect it to the endpoint.
 		try:
-			utils.logging('Websocket: Create socket')
+			sol_utils.logging('Websocket: Create socket')
 			if self.websocket is not None:
 				await self.websocket.close()
 
 			self.websocket = await websockets.client.connect(self.server_uri)
 			# you may want to add additional connect parameters like 'ping_interval=xxx' and 'ping_timeout=xxx'
 			# see the readme.md file for a possible reason
-			utils.logging('Websocket: Connected to: ' + self.server_uri)
+			sol_utils.logging('Websocket: Connected to: ' + self.server_uri)
 		except Exception as err:
-			utils.logging('Websocket error: ' + str(self.server_uri))
-			utils.logging('Websocket error: ' + str(err) or 'Empty error string returned.')
+			sol_utils.logging('Websocket error: ' + str(self.server_uri))
+			sol_utils.logging('Websocket error: ' + str(err) or 'Empty error string returned.')
 			raise Exception('websocket', 'timer_offline')
 
 	async def _send_api_request(self, data, silent = False):
@@ -75,12 +75,12 @@ class connect_to_solmate:
 			# when a mandatory option is not sent correctly/at all (route=logs, missing parameter),
 			# solmate just closes the connection instead writing an error response that could be covered
 			# sadly, the error message is not quite helpful as the connection itself was ok
-			utils.logging('Websocket: Request: Connection closed unexpectedly.')
+			sol_utils.logging('Websocket: Request: Connection closed unexpectedly.')
 			raise ConnectionError('Connection closed unexpectedly.')
 
 		# for all undefined websocket exceptions
 		except Exception as err:
-			utils.logging('Websocket: Undefined error requesting the solmate API: ' + str(err))
+			sol_utils.logging('Websocket: Undefined error requesting the solmate API: ' + str(err))
 			raise
 
 		# return the response
@@ -92,17 +92,17 @@ class connect_to_solmate:
 			# contains the original websocket error data
 			err = 'Websocket: Response: ' + str(response['error'])
 			if not silent:
-				utils.logging(err)
+				sol_utils.logging(err)
 			raise Exception(err)
 		else:
 			err = 'Websocket: The response did not contain any useful data.'
-			utils.logging(err)
+			sol_utils.logging(err)
 			raise Exception(err)
 
 	def ws_request(self, route, data, silent = False):
 		# send request for the given route without error handling
 		try:
-			response = utils.create_async_loop().run_until_complete(
+			response = sol_utils.create_async_loop().run_until_complete(
 				self._send_api_request(
 					{'id': self.message_id, 'route': route, 'data': data}, silent
 				)
@@ -113,7 +113,7 @@ class connect_to_solmate:
 			# an asyncio event loop is thread-specific
 			# if there is a thread error, access was out of the current thread!
 			# with such an error, we safely reconnect
-			#utils.logging('Error: ' + str(err))
+			#sol_utils.logging('Error: ' + str(err))
 			raise Exception('websocket', 'timer_conn_err')
 
 	def authenticate(self):
@@ -122,34 +122,34 @@ class connect_to_solmate:
 		try:
 			# get the serial number to use for authentication
 			# either the normal sn or, if exists and not empty, the spare sn
-			serial_number = utils.merged_config['eet_spare_serial_number'] or utils.merged_config['eet_serial_number']
+			serial_number = sol_utils.merged_config['eet_spare_serial_number'] or sol_utils.merged_config['eet_serial_number']
 
 			# get the response to the request of the login route using login data
 			# important: this only tells if there was success or not like {'success': True|False}
 			# note to expect that the endpoint 'login' exists
-			utils.logging('Websocket: Authenticating')
-			response = utils.create_async_loop().run_until_complete(self._send_api_request(
+			sol_utils.logging('Websocket: Authenticating')
+			response = sol_utils.create_async_loop().run_until_complete(self._send_api_request(
 				{
 					'id': self.message_id,
 					'route': 'login',
 					'data': {
 						'serial_num': serial_number,
-						'user_password_hash': base64.encodebytes(hashlib.sha256(utils.merged_config['eet_password'].encode()).digest()).decode(),
-						'device_id': utils.merged_config['eet_device_id']
+						'user_password_hash': base64.encodebytes(hashlib.sha256(sol_utils.merged_config['eet_password'].encode()).digest()).decode(),
+						'device_id': sol_utils.merged_config['eet_device_id']
 					}
 				}
 			))
 			if 'success' in response and not response['success']:
 				# technically the call was ok, but insuccessful because a pwd mismatch
 				# this is so critical that we exit immediately
-				utils.logging('Websocket: Password for ' + serial_number + ' does not match! Hard exit.')
+				sol_utils.logging('Websocket: Password for ' + serial_number + ' does not match! Hard exit.')
 				sys.exit()
 
 		except Exception as err:
 			# return that authentication failed
 			# the error either comes from the _send_api_request but could possibly be temporary
-			utils.logging(str(err))
-			utils.logging('Websocket: Authentication to ' + serial_number + ' failed!')
+			sol_utils.logging(str(err))
+			sol_utils.logging('Websocket: Authentication to ' + serial_number + ' failed!')
 			raise Exception('websocket', 'timer_offline')
 
 		try:
@@ -164,14 +164,14 @@ class connect_to_solmate:
 				correct_server = False
 				while not correct_server:
 					# get the response to the authentication route with the authentication data
-					response = utils.create_async_loop().run_until_complete(self._send_api_request(
+					response = sol_utils.create_async_loop().run_until_complete(self._send_api_request(
 						{
 							'id': self.message_id,
 							'route': 'authenticate',
 							'data': {
 								'serial_num': serial_number,
 								'signature': signature,
-								'device_id': utils.merged_config['eet_device_id']
+								'device_id': sol_utils.merged_config['eet_device_id']
 							}
 						}
 					))
@@ -179,16 +179,16 @@ class connect_to_solmate:
 					# if there is a load-balancer handle a redirect
 					if 'redirect' in response and response['redirect'] is not None:
 						redirect_uri = str(response['redirect'])
-						utils.logging('Got redirected to: ' + redirect_uri)
+						sol_utils.logging('Got redirected to: ' + redirect_uri)
 						self._redirected_server(redirect_uri)
-						utils.create_async_loop().run_until_complete(self._create_socket())
+						sol_utils.create_async_loop().run_until_complete(self._create_socket())
 					else:
 						# when there is no redirect parameter, the socket is connected to the correct instance
 						correct_server = True
 
 				if response:
 					# return the authenticated connection
-					utils.logging('Websocket: Authentication to ' + serial_number + ' successful!')
+					sol_utils.logging('Websocket: Authentication to ' + serial_number + ' successful!')
 					return response
 
 				# there was an empty response which should not happen, may be temporary
@@ -200,8 +200,8 @@ class connect_to_solmate:
 		except Exception as err:
 			# hash based authentication failed
 			# the reason may be loadbalancer issues or a failure using the hash
-			utils.logging(str(err))
-			utils.logging('Websocket: Hash based Authentication to ' + serial_number + ' failed!')
+			sol_utils.logging(str(err))
+			sol_utils.logging('Websocket: Hash based Authentication to ' + serial_number + ' failed!')
 			raise Exception('websocket', 'timer_offline')
 
 	def check_route(self, route, data):
@@ -239,7 +239,7 @@ class connect_to_solmate:
 				# check if both keywords exist in the error message
 				# in case, stop script if the endpoint does not exists, continue makes no sense
 				# logging of which inexistent route was already done in '_send_api_request'
-				utils.logging('Websocket: Exiting.')
+				sol_utils.logging('Websocket: Exiting.')
 				sys.exit()
 
 			if 'sent 1011' in str(err):
@@ -247,18 +247,18 @@ class connect_to_solmate:
 				# the endpoint existed, but the response was malformed
 				# the websocket keep alive ping/pong failed (see readme.md)
 				# for an immediately restart we need to implement a new timer with value 0 (or 1)
-				utils.logging('Websocket: Keep alive ping/pong failed.')
+				sol_utils.logging('Websocket: Keep alive ping/pong failed.')
 				raise Exception('websocket', 'timer_min')
 
 			self.count_before_restart += 1
 
-			if self.count_before_restart == utils.merged_config['timer_attempt_restart']:
+			if self.count_before_restart == sol_utils.merged_config['timer_attempt_restart']:
 				# only on _consecutive_ unidentified issues
 				# if waiting the response time did not help, restart after the n-th try 
-				utils.logging('Websocket: Too many failed consecutive connection attempts: ' + str(self.count_before_restart))
+				sol_utils.logging('Websocket: Too many failed consecutive connection attempts: ' + str(self.count_before_restart))
 				raise Exception('websocket', 'timer_conn_err')
 
-			utils.logging('Websocket: A non breaking error happened, continuing.')
-			#utils.logging('Error: ' + str(err))
+			sol_utils.logging('Websocket: A non breaking error happened, continuing.')
+			#sol_utils.logging('Error: ' + str(err))
 			# the false response tells the caller about the incident, it is handled there
 			return False
