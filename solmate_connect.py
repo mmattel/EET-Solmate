@@ -58,7 +58,7 @@ def connect_solmate():
 
 	return smws_conn, online, local
 
-def connect_mqtt(api_available):
+def connect_mqtt(api_available, type):
 	# connect to the mqtt broker
 
 	# IMPORTANT: import the module here because we need to have 'solmate_env' executed first !
@@ -76,10 +76,12 @@ def connect_mqtt(api_available):
 			# signal handlers are always executed in the main Python thread of
 			# the main interpreter, even if the signal was received in another thread.
 			# if not otherwise defined, it itself raises a KeyboardInterrupt to make a shutdown here too
-			signal.signal(signal.SIGINT, mqtt_conn.signal_handler_sigint)
-			# ctrl-c
-			signal.signal(signal.SIGTERM, mqtt_conn.signal_handler_sigterm)
-			# sudo systemctl stop eet.solmate.service
+			if not type:
+				# errors for appdaemon: 'signal only works in main thread of the main interpreter'
+				signal.signal(signal.SIGINT, mqtt_conn.signal_handler_sigint)
+				# ctrl-c
+				signal.signal(signal.SIGTERM, mqtt_conn.signal_handler_sigterm)
+				# sudo systemctl stop eet.solmate.service
 
 		except Exception as err:
 			# either class initialisation or initializing mqtt failed

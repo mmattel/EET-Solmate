@@ -1,0 +1,4 @@
+solmate_0:
+  module: solmate_appdaemon_0
+  class: Solmate_0
+  log: solmate_log_0

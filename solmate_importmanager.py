@@ -9,37 +9,57 @@ from contextlib import contextmanager
 # by this we do not need to import a new module
 # we also need to adapt the code a bit
 
-def install_version(package_name, version, path, print_output = False):
+def install_version(package_name, version, path):
 	# Installs a specific version of a package into the specified directory.
 
 	try:
 		full_package_name = f"{package_name}=={version}"
-		cmd = [sys.executable, '-m', 'pip', 'install', full_package_name, "--target={}".format(path)]
-		target_path = os.path.join(path, package_name, version)
-		if not os.path.exists(target_path):
+		cmd = [sys.executable,
+				'-m',
+				'pip',
+				'install',
+				'--upgrade',
+				'--ignore-installed',
+				#'--isolated',
+				#'--no-dependencies',
+				'--progress-bar=off',
+				full_package_name,
+				"--target={}".format(path)
+				]
+		#print(cmd)
+		target_path = path
+		if not os.path.exists(path):
 			os.makedirs(target_path)
-		output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-		if print_output:
-			# print output is intended for debugging purposes only, therefore no sol_utils.logging
-			print(output.decode())
+		completedProcess = subprocess.run(cmd, capture_output=True, check=True)
+		output = completedProcess.stdout
+		sol_utils.logging('Importmanager: ' + output.decode().replace('\n',', '))
 	except subprocess.CalledProcessError as err:
 		sol_utils.logging('Importmanager: Installation failed: ' + str(err))
 	except Exception as err:
 		sol_utils.logging('Importmanager: An error occurred during installation: ' + str(err))
 
 @contextmanager
-def import_helper(package_name, version, path):
+def import_helper(package_name, path):
 	# Context manager to temporarily add a package version to sys.path.
 
-	package_path = os.path.abspath(os.path.join(path, package_name, version))
-	if not os.path.exists(package_path):
-		raise ImportError(f"Package path {package_path} does not exist. Install the package first.")
+	if not os.path.exists(path):
+		# this only gets printed if there is an error not covered by the caller
+		raise ImportError(f"Package path {path} does not exist. Install the package first.")
+
+	p = []
+	p.append(path)
+	#print(p, path)
 
 	original_sys_path = sys.path.copy()
-	sys.path.insert(1, package_path)
+	# overwriting the complete path with only one element pointing to the exact one modulle version
+	# note, the path must be an array !
+	sys.path = p
 
 	try:
 		yield
+	#except ModuleNotFoundError as err:
+	#	print(str(err))
+	#	print(path, original_sys_path)
 	finally:
 		sys.path = original_sys_path
 

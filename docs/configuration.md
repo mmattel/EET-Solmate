@@ -1,13 +1,9 @@
-# Script Configuration
+# esham Configuration
 
-This document describes the configuration of the Solmate to HA scripts.
+As a starting point, make a copy of the `.env-sample` file and name it the following:
 
-As a starting point, make a copy of the `.env-sample` file, name it `.env`.
-
-Delete the optional section and adapt the rest accordingly.
-
-If you have version 6 or up of "Solmate to HA" software running, you can safely remove any optional keys
-from your config file that were present from former releases - except you actively use them.
+* For Plain Python installations name it `.env`
+* For an Appdeamon installation name it `.env_0`
 
 **NOTE**
 
@@ -20,21 +16,31 @@ from your config file that were present from former releases - except you active
 ## Required Configurations
 
 All keys in the MANDATORY section need to be present and configured according your environment.
-You can read the respective comments for their purpose. 
+You can read the respective comments for their purpose.
+
+If you are upgrading from a release earlier than version 6, you can now safely remove any optional keys
+from your config file that were present from former releases - except you actively use them with
+different settings.
+
+Note regarding MQTT configuration when using the HAOS MQTT Broker addon:
+
+* Use the HA IP address or domain name to access the MQTT Broker addon.
+* Instead using your admin user, it is generally recommended to generate a "dummy" user with a password
+which will never logon. Any user in HA is granted MQTT Broker access.
 
 ## Optional Configurations
 
 These keys are optional and do not need to be present. They are, if not present, internally generated
-including their defaults if any. If present, the overwrite the generated ones.
+including their defaults if any. If optional configuration keys are set, the overwrite generated ones.
 
 The following optional key schemes are present:
 
 * `eet_`\
-These keys extend the mandatory eet key scheme.
+  These keys extend the mandatory eet key scheme.
 * `default_`\
-The Solmate has some setting defaults when using the webUI. These settings are reused and can be overwritten
-when adding the respective key to the config. Note that changing defaults is on your own responsibility.
+  The Solmate has some setting defaults when using the webUI. These settings are reused and can be overwritten
+  when adding the respective key to the config. Note that changing defaults is on your own responsibility.
 * `general_`\
-Only needed for debugging and testing purposes. 
+  Only needed for debugging and testing purposes. 
 * `timer_`\
-All timer related config keys.
+  All timer related config keys.

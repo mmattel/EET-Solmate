@@ -1,0 +1,12 @@
+# use this command to start with docker run
+
+# check if the port is free with:
+# linux: netstat -ano | grep "5050"
+# windows: netstat -ano | findStr "5050"
+# adapt the port in appdaemon.yaml: http.url accordingly
+
+# the environment is defined via the config located in the
+# config directory (see volume for the path)
+# the local path must be provided and populated with the config upfront!
+
+docker run --name appdaemon -d --restart=always --network=host -p 5050:5050 -v <local-config-path>:/conf acockburn/appdaemon
