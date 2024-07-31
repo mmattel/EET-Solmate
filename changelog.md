@@ -2,13 +2,24 @@
 
 ## [Unreleased]
 
+* Future
+
+## [7.0.0] 2024.07.31
+
+* MAJOR:
+  * Allow `esham` to run as Appdaemon app.
+  * Deprecating the HA crond installation method in favour of Appdaemon. The crond method will still exist
+    but will get removed in a subsequent release, no development efforts will be done anymore. Upgrade
+    your installation to use Appdaemon.
+  * Implement dynamic loading and importing libraries.
+  * Adapt the code to coexist with libraries that are installed with a lower version than needed by `esham`.
+    This is in particular implemented for `paho-mqtt` but can be extended for other libraries when necessary.
+  * Removing 3 libraries from the requirements: `paho-mqtt`, `semver` and `termcolor`.\
+    Note that when not running as Appdaemon app like when using dedicated hardware, it is beneficial
+    to install the `paho-mqtt` library because dynamic library loading and importing is not necessary.
+  * Note that the pure python installation continue to exists and is a vital part of available methods.
 * Switching to [keep a changelog](https://keepachangelog.com).
-* Removing 3 libraries from the requirements: `paho-mqtt`, `semver` and `termcolor`.\
-Note that when running in a an environment like using dedicated hardware, it is beneficial to install
-the `paho-mqtt` library because dynamic library loading and inporting is not necessary.
-* Implement dynamic loading and importing libraries.
-* Adapt the code to coexist with libraries that are installed with a lower version than needed by `esham`.
-This is in particular implemented for `paho-mqtt` but can be extended for other libraries too.
+* Full docs refactoring
 
 ## [6.2.0] - 2024-07
 

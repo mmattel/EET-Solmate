@@ -18,29 +18,24 @@ mqtt_queue = queue.Queue()
 # provide a global available config variable 
 merged_config = {}
 
-# this is just a preparation if the the deprecation would pop up, but has currently NO
-# effect and uses the default method of asyncio.get_event_loop()
-# tests have shown that it breaks the 'if' code as any request to the solmate runs thru
-# self.websocket.recv() which hangs forever if enabled.
-#
 # properly create an async loop because of a warning popping up with python >=3.10:
 # DeprecationWarning: There is no current event loop
 # https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_event_loop
 # https://stackoverflow.com/questions/73884117/how-to-replace-asyncio-get-event-loop-to-avoid-the-deprecationwarning
+# https://stackoverflow.com/questions/46727787/runtimeerror-there-is-no-current-event-loop-in-thread-in-async-apscheduler
 def create_async_loop():
-	# comment/remove when self.websocket.recv() is fixed
-	loop = asyncio.get_event_loop()
-	return loop
 
-	# do not run this until clarified why self.websocket.recv() hangs forever
-	if sys.version_info < (3, 10):
+	try:
+		# we first try the old way
 		loop = asyncio.get_event_loop()
-	else:
-		try:
-			loop = asyncio.get_running_loop()
-		except RuntimeError:
+	except RuntimeError as err:
+		# ok, that was not working, do it the new way
+		if str(err).startswith('There is no current event loop in thread'):
 			loop = asyncio.new_event_loop()
-		asyncio.set_event_loop(loop)
+			asyncio.set_event_loop(loop)
+		else:
+			# if that also not worked, raise the error to track it
+			raise
 	return loop
 
 def logging(message):
@@ -55,13 +50,18 @@ def logging(message):
 		else:
 			print(message)
 
+	# the message maybe not a string but a number, better safe than sorry
 	message = str(message)
-	# the message maybe not a string but a number
-	message = message.replace('\r', '')
-	# remove \r = carriage return (octal 015)
-	# this would else show up in syslog like as #015Interrupted by keyboard
-	# a timestamp is not needed as syslog does that automatically
-	syslog.syslog(f'{message}')
+
+	if merged_config['internal_access_self'] is None:
+		# remove \r = carriage return (octal 015)
+		# this would else show up in syslog like as #015Interrupted by keyboard
+		# a timestamp is not needed as syslog does that automatically
+		message = message.replace('\r', '')
+		syslog.syslog(f'{message}')
+	else:
+		self = merged_config['internal_access_self']
+		self.log(message)
 
 async def _async_timer(timer_value):
 	# run an async timer
@@ -118,25 +118,26 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 
 	if response:
 		# import the default existing one from the OS, it matches the requirement
-		#import paho.mqtt.client as mqtt
-		#from paho.mqtt.packettypes import PacketTypes
 		try:
 			for c in imports:
 				exec(c, globals())
 		except Exception as err:
 			logging('Utils: ' + str(err))
-			logging('Utils: Cant continue, hard exit')
+			logging('Utils: Default import error, cant continue, hard exit')
 			sys.exit()
 	else:
 		try:
 			# get the highest matching version to install according the given pattern in x
 			matching_version = sol_im.get_available_version(query_name, pattern)
-			# try to import that special package - if the package was already installed
-			# import will fail if the package was not installed before
-			with sol_im.import_helper(install_name, matching_version, path):
-				#import paho.mqtt.client as mqtt
-				#from paho.mqtt.packettypes import PacketTypes
+			#print(matching_version)
+			pth = os.path.join(path, install_name + '_' + matching_version)
+			with sol_im.import_helper(install_name, pth):
+				#print()
+				#print('1. try to install the hopefully downloaded')
+				# first try to import related special package(s) - if the package was already installed
+				# import will fail if the package was not installed before
 				for c in imports:
+					print(c)
 					exec(c, globals())
 
 		except Exception as err:
@@ -151,7 +152,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 
 			try:
 				# install the special package
-				sol_im.install_version(install_name, matching_version, path)
+				sol_im.install_version(install_name, matching_version, pth)
 
 			except Exception as err:
 				logging('MQTT: An error occured installing \'' + paho-mqtt + '\' ' + str(version) + ' exiting.')
@@ -159,10 +160,13 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 				sys.exit()
 
 			# import this specifiv package version
-			with sol_im.import_helper(install_name, matching_version, path):
-				#import paho.mqtt.client as mqtt
-				#from paho.mqtt.packettypes import PacketTypes
+			with sol_im.import_helper(install_name, pth):
+				#print()
+				#print('2. try again install the downloaded')
+				# then import related special package(s) - the package got installed
+				# import will fail if the package was not installed before
 				for c in imports:
+					print(c)
 					exec(c, globals())
 
 	# after successful importing, return the objects so that the caller can use it

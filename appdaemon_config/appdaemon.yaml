@@ -1,0 +1,32 @@
+appdaemon:
+  latitude: 0
+  longitude: 0
+  elevation: 30
+  time_zone: Europe/Vienna
+  plugins:
+    HASS:
+      type: hass
+      ha_url: http://homeassistant.local:8123
+      token: !secret ha_token
+      cert_verify: True
+http:
+  url: http://0.0.0.0:5050
+admin:
+api:
+hadashboard:
+   dash_url: "http://0.0.0.0:5050"
+   dash_dir: /conf/dashboards
+   dash_force_compile: 1
+   dash_compile_on_start: 1
+logs:
+  solmate_log_0:
+    name: Solmate_Log_0
+    #
+    # either use one OR the other, mutual exclusive !
+    # just comment as required
+    #
+    # for a docker install use /conf
+    #filename: /conf/apps/solmate/solmate_0.log
+    #
+    # for a HA app install use /config
+    filename: /config/apps/solmate/solmate_0.log

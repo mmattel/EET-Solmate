@@ -1,0 +1,37 @@
+services:
+  appdaemon:
+    container_name: appdaemon
+    restart: always
+    image: acockburn/appdaemon:latest
+
+    #environment:
+    # the environment is defined via the config located in the
+    # config directory (see volume for the path)
+    # the local path must be provided and populated with the config upfront!
+    #  HA_URL: "http://${SERVER_IP}:8123"
+    #  TOKEN: "${HA_APPDAEMON_KEY}"
+    #  DASH_URL: "http://${SERVER_IP}:5050"
+
+    network_mode: host
+
+    ports:
+      # used to access appdaemons admin board (like to view the logs)
+      # check if the port is free with:
+      # linux: netstat -ano | grep "5050"
+      # windows: netstat -ano | findStr "5050"
+      # adapt the port in appdaemon.yaml: http.url accordingly
+      - "5050:5050"
+
+    volumes:
+      # Set which local directory will contain all your app daemon configuration
+      - <local config path>:/conf
+
+    #depends_on:
+      # add depends on if you have a combined compose file to define startup
+      #- homeassistant
+
+    # (optional) map the docker user to your user id
+    # this ensures that files can be edited without root access
+    # especially useful in combination with the VSCode server image
+    # and for easy updating the python files and the config data
+    user: "${LOCAL_USER}:${LOCAL_GROUP}"

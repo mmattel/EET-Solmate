@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import time
 import signal
@@ -7,14 +8,15 @@ import solmate_utils as sol_utils
 
 # following code is executed on module load
 # to make the code running successfully, a "late" import is required to use utils/env
+
 # the code is necessary to enable importing a library with a different version
-# than the one that is installed in the OS and we cant overwrite it  
+# than the one that is installed in the OS and we cant update it
 
 # in particular, check if the installed package of paho-mqtt is major version 2
 # if this is not the case, we need to install/import a specific one
 
 # 1.6.1 --> 2.x.y https://eclipse.dev/paho/files/paho.mqtt.python/html/migrations.html
-# we later can improve the <property> opject use when turning off mqttv3.x protocol use
+# we can later improve the <property> opject use when turning off mqttv3.x protocol use
 # see: http://www.steves-internet-guide.com/python-mqtt-client-changes/
 
 # get the target/min version range for paho-mqtt
@@ -22,17 +24,18 @@ import solmate_utils as sol_utils
 pattern = sol_utils.merged_config['general_paho_mqtt_version']
 
 # location of the custom special installed package
-path = sol_utils.merged_config['general_install_path']
+path = sol_utils.merged_config['general_install_path'] + sol_utils.merged_config['general_install_folder']
 
-# this is th ename of the package when installed and you run pip list
+# this is the name of the package when installed and you run pip list
 query_name = 'paho-mqtt'
 
-# this is th ename of the package when you need to install it
-install_name = 'paho_mqtt'
+# this is the name of the package when you need to install it
+install_name = 'paho-mqtt'
 
 # this are the commands to do the imports
 imports = ['import paho.mqtt.client as mqtt', 'from paho.mqtt.packettypes import PacketTypes']
-# this are the alias name objetcs from the imports used by the module. note that they must match
+# this are the alias name objetcs from the imports used by the module.
+# note that they must match
 # note that if no alias (as) is used, check the 'return_object' code to get it
 # does not apply to 'from' as the name is defined
 name_objects = ['mqtt', 'PacketTypes']
@@ -40,12 +43,13 @@ name_objects = ['mqtt', 'PacketTypes']
 # dynamically import packages based on the requirements defined
 return_object = sol_utils.dynamic_import(pattern, path, query_name, install_name, imports, name_objects)
 
-# get the imported objects for local use
+# get the imported objects to use with this module
 for x,y in zip(name_objects, return_object):
-    globals()[x] = y
-#sys.exit()
+	globals()[x] = y
+
 
 class solmate_mqtt():
+	# handle mqtt
 
 	def __init__(self, api_available):
 		# initialize MQTT with parameters

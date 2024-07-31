@@ -25,12 +25,15 @@ def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint
 		if mqtt_conn:
 			mqtt_conn.send_sensor_update_message(response, endpoint)
 
-def main(version):
+def main(version, self = None):
+	# the main routine that covers all. must be called by a higher layer doing final error catching
+	# the parameter self is optional. if not set, we have a default setup like with systemd
+	# if set, it comes from appdaemon and holds the class access
 
 	try:
 		# basic initialisation
 		# get envvars to configure access either from file or from os/docker envvars
-		sol_env.process_env(version)
+		sol_env.process_env(version, self)
 
 		print_response = sol_utils.merged_config['general_print_response']
 
@@ -78,7 +81,7 @@ def main(version):
 			if not mqtt_connected:
 				# connect and authenticate to mqtt if defined
 				# mqtt_conn can either be false (mqtt not used) or contains the mqtt connection object
-				mqtt_conn = sol_connect.connect_mqtt(api_available)
+				mqtt_conn = sol_connect.connect_mqtt(api_available, type)
 				# connected says, that technically the initialisation was successful
 				mqtt_connected = True
 
