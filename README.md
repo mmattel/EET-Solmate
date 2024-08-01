@@ -10,11 +10,13 @@ Internal name: `esham` --> **E**et **S**olmate **H**ome**A**ssistant **M**qtt
    * [Code Changes](#code-changes)
    * [Prerequisites](#prerequisites)
    * [Installation Options](#installation-options)
+   * [Migration](#migration)
    * [Configuration](#configuration)
    * [Connection Resilience](#connection-resilience)
    * [MQTT Monitoring](#mqtt-monitoring)
    * [Additional Home Assistant Info](#additional-home-assistant-info)
    * [Known Routes](#known-routes)
+
 
 
 ## General Info
@@ -66,9 +68,9 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
 `esham` can be installed in 2 different ways:
 
 * As plain Python program that runs on independent hardware
-* As app in Appdaemon
-  * Either integrated in HA (!!) like when using a HA Appliance
-  * Or when installing Appdaemon as seperate container
+* As app in Appdaemon:
+  * Either integrated in HA (!!) like when using a HA Appliance.
+  * Or when installing Appdaemon as seperate container.
   * See the HA [Installation](https://www.home-assistant.io/installation) options for more details.
 
 * You need per Solmate installed, one instance of the script individually configured (if you have more than one). Note that you need some additionals steps when using HAOS by adapting the scripts used accordingly.
@@ -92,16 +94,20 @@ Before installing `esham`, you must have:
 
 * **Install via Plain Python**\
   Use this method when you want to run `esham` fully independent on a host that has Python installed.
-  See the [Plain Install Option](./docs/plain-install.md) description for more details.
+  See the [Plain Install Option](./docs/plain-install.md) documentation for more details.
 
 * **Install via Appdeamon**\
   Dependent on the way how [HA is installed](https://www.home-assistant.io/installation), you can either
   directly integrate `esham` as app in the appdeamon addon or use a dedicated appdeamon container running
-  on a separate host. See the [Appdaemon](./docs/appdeamon.md) description for more details.
+  on a separate host. See the [Appdaemon](./docs/appdaemon.md) documentation for more details.
+
+## Migration
+
+See the [migration](./docs/migration.md) documentation for more details.
 
 ## Configuration
 
-See the [configuration](./docs/configuration.md) description for more details.
+See the [configuration](./docs/configuration.md) documentation for more details.
 
 ## Connection Resilience
 
@@ -122,11 +128,11 @@ sever, as longer it will take, but it will.
 
 ## MQTT Monitoring
 
-See the linked [description](./docs/monitor-mqtt.md) description for more details.
+See the linked [description](./docs/monitor-mqtt.md) documentation for more details.
 
 ## Additional Home Assistant Info
 
-See the linked [description](./docs/additional-ha-info.md) description for more details.
+See the linked [description](./docs/additional-ha-info.md) documentation for more details.
 
 ## Known Routes
 
