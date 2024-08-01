@@ -19,9 +19,9 @@ somewhere else. Functionality wise and mostly also from the setup, there is no d
 
 If you already have Appdaemon running, you can use this installation.
 
-There are some files prepared in the `appdaemon_config` folder easing the installation and preparation
-process. When installing as container, you can either use the `docker-compose.yaml` or `docker-run.txt`
-files to derive from.
+There are some example files prepared in the `appdaemon_config` folder easing the installation and preparation
+process. Have a look when referenced in the text. When installing as container, you can either use the
+`docker-compose.yaml` or `docker-run.txt` files to derive from.
 
 ## Process Overview
 
