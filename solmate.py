@@ -4,11 +4,9 @@ import sys
 import solmate_main as sol_main
 import solmate_utils as sol_utils
 
-version = '7.0.0'
-
 if __name__ == '__main__':
 	try:
-		sol_main.main(version)
+		sol_main.main()
 	except KeyboardInterrupt:
 		# avoid printing ^C on the console
 		# \r = carriage return (octal 015)
