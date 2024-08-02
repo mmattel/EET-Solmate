@@ -99,7 +99,7 @@ def get_available_version(package, required_version = ''):
 			return version_list[0]
 	except Exception as err:
 		raise
-		print(str(err))
+		sol_utils.logging('Importmanager: ' + str(err))
 		sys.exit()
 
 def get_installed_version(package, required_version = ''):

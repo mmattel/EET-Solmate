@@ -8,6 +8,8 @@ import solmate_connect as sol_connect
 import solmate_env as sol_env
 import solmate_utils as sol_utils
 
+version = '7.0.1'
+
 def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint):
 	# send request but only when triggered by the scheduler
 	# use only for requests with routes that change rarely, more requests can be added
@@ -25,10 +27,13 @@ def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint
 		if mqtt_conn:
 			mqtt_conn.send_sensor_update_message(response, endpoint)
 
-def main(version, self = None):
+def main(self = None):
 	# the main routine that covers all. must be called by a higher layer doing final error catching
 	# the parameter self is optional. if not set, we have a default setup like with systemd
 	# if set, it comes from appdaemon and holds the class access
+
+	# version is defined on the module level
+	global version
 
 	try:
 		# basic initialisation

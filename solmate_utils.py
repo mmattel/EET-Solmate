@@ -96,12 +96,12 @@ def print_request_response(route, response):
 	# hardcoded, set to 0 to print unformatted as string
 	print_json = 1
 	if print_json == 1:
-		print(colored('\n' + route + ':', 'red'))
+		print('\n' + route + ':')
 		# ensure_ascii = False escapes characters like <, >, | etc
 		json_formatted_str = json.dumps(response, indent=2, ensure_ascii = False)
 		print(json_formatted_str)
 	else:
-		print(colored(route + ': ', 'red') + str(response))
+		print(route + ': ' + str(response))
 
 def dynamic_import(pattern, path, query_name, install_name, imports, name_objects):
 	# dynamically install and import modules
@@ -137,7 +137,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 				# first try to import related special package(s) - if the package was already installed
 				# import will fail if the package was not installed before
 				for c in imports:
-					print(c)
+					#print(c)
 					exec(c, globals())
 
 		except Exception as err:
@@ -166,7 +166,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 				# then import related special package(s) - the package got installed
 				# import will fail if the package was not installed before
 				for c in imports:
-					print(c)
+					#print(c)
 					exec(c, globals())
 
 	# after successful importing, return the objects so that the caller can use it

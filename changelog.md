@@ -4,6 +4,15 @@
 
 * Future
 
+## [7.0.1] 2024.08.02
+
+* The Appdaemon integration needed a fix to make `esham` not blocking other apps. This is now fixed
+  by making this integration an own and independent thread.
+  * As bonus, threading in AD enables by design multi Solmate configurations.
+* Adding an upgrade guide
+* Adding a migration guide
+* Adding a multi Solmate setup guide
+
 ## [7.0.0] 2024.07.31
 
 * MAJOR:

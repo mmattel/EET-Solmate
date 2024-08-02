@@ -10,14 +10,14 @@ Internal name: `esham` --> **E**et **S**olmate **H**ome**A**ssistant **M**qtt
    * [Code Changes](#code-changes)
    * [Prerequisites](#prerequisites)
    * [Installation Options](#installation-options)
-   * [Migration](#migration)
    * [Configuration](#configuration)
+   * [Migration](#migration)
+   * [Upgrading](#upgrading)
+   * [Multiple Solmates](#multiple-solmates)
    * [Connection Resilience](#connection-resilience)
    * [MQTT Monitoring](#mqtt-monitoring)
    * [Additional Home Assistant Info](#additional-home-assistant-info)
    * [Known Routes](#known-routes)
-
-
 
 ## General Info
 
@@ -49,8 +49,9 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
   * Writebacks from HA to the Solmate get buffererd in case the connection to the Solmate has an outage.
 * **Multiple Solmates**
   * You can configure more than one Solmate.
-    * For plain installations, each Solmate runs with its own Python and is therefore fenced.
-	* For Appdaemon, though prepared, this is not tested but should work (feedback welcomed)
+    * For plain Python installations, each Solmate runs in its own directory and is therefore fenced.
+	* For Appdaemon, each Solmate needs it AD config, but they will run using the same code but as
+	  individual thread.
 * **Logging**
   * `esham` provides logging but only for important stuff. Daily business is not logged except configured.
 * **Configurabiliity**
@@ -73,7 +74,8 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
   * Or when installing Appdaemon as seperate container.
   * See the HA [Installation](https://www.home-assistant.io/installation) options for more details.
 
-* You need per Solmate installed, one instance of the script individually configured (if you have more than one). Note that you need some additionals steps when using HAOS by adapting the scripts used accordingly.
+* You need per Solmate installed, one instance of the script individually configured, Note that you
+  need some additionals steps when using HAOS by adapting the AD config and entry scripts used accordingly.
 
 ## Code Changes
 
@@ -101,13 +103,21 @@ Before installing `esham`, you must have:
   directly integrate `esham` as app in the appdeamon addon or use a dedicated appdeamon container running
   on a separate host. See the [Appdaemon](./docs/appdaemon.md) documentation for more details.
 
+## Configuration
+
+See the [configuration](./docs/configuration.md) documentation for more details.
+
 ## Migration
 
 See the [migration](./docs/migration.md) documentation for more details.
 
-## Configuration
+## Upgrading
 
-See the [configuration](./docs/configuration.md) documentation for more details.
+See the [upgrade](./docs/upgrade.md) documentation for more details.
+
+## Multiple Solmates
+
+See the [multiple Solmates](./docs/multi-solmates.md) documentation for more details.
 
 ## Connection Resilience
 

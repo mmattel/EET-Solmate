@@ -16,12 +16,12 @@ As rule of thumb, use your home directory as target. **Note** that the directory
   ```
 * **Initial Cloning**
 
-  * **Use the following commands if you have not cloned esham before**:  
+  * **Commands if you have not cloned esham before**:  
     ```
     git clone --depth 1 https://github.com/mmattel/eet-solmate.git solmate
     git fetch --all --tags
     ```
-* **Use the following commands for updates**
+* **Commands for updates**
   * Note that this will drop any changes you have made
     **except for the .env configuration file**.  
     ```
@@ -31,7 +31,7 @@ As rule of thumb, use your home directory as target. **Note** that the directory
     git pull --rebase origin main
     git fetch --all --tags
     ```
-* **Switch to the solmate version you want to use**\
+* **Switch to the Solmate version you want to use**\
   The example uses v7.0.0
   ```
   git tag -l
