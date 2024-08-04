@@ -4,7 +4,7 @@ import solmate_utils as sol_utils
 # for appdaemon, we need an own "container" that calls the main program and
 # catches/logs errors
 
-def main(self, env_name_appendix):
+def main(self, env_name_appendix, sn):
 	try:
 		self.env_name_appendix = env_name_appendix
 		sol_main.main(self)
@@ -14,11 +14,14 @@ def main(self, env_name_appendix):
 		sol_utils.logging('Main: Terminated by the program')
 
 		# also log to appdaemon
-		self.log('Solmate App ending with: ' + env_name_appendix + ': Terminated by the program')
+		self.log(sn + ': Got erminated by the program')
 
 # maybe we want to add in the future something like:
 #
 #import multiprocessing
 #for p in multiprocessing.active_children():
-#	if p.name == "solmate_appdaemon"+env_name_appendix:
+#	if 'solmate_appdaemon' in p.name:
+#		self.log('Found: ' + str(p.name))
 #		p.terminate()
+#		self.log('Terminated: ' + str(p.name))
+

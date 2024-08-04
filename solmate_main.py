@@ -8,7 +8,7 @@ import solmate_connect as sol_connect
 import solmate_env as sol_env
 import solmate_utils as sol_utils
 
-version = '7.0.1'
+version = '7.0.2'
 
 def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint):
 	# send request but only when triggered by the scheduler
@@ -86,7 +86,7 @@ def main(self = None):
 			if not mqtt_connected:
 				# connect and authenticate to mqtt if defined
 				# mqtt_conn can either be false (mqtt not used) or contains the mqtt connection object
-				mqtt_conn = sol_connect.connect_mqtt(api_available, type)
+				mqtt_conn = sol_connect.connect_mqtt(api_available)
 				# connected says, that technically the initialisation was successful
 				mqtt_connected = True
 
