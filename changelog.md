@@ -4,6 +4,14 @@
 
 * Future
 
+## [7.0.2] 2024.08.04
+
+* Appdaemon only:
+  * Fix to prevent the possibility to run multiple instances of the same solmate in parallel.
+  * Fix to trigger and catch terminating `esham` on programatical request like with p.terminate()
+  * Prevent printing startup status in the Appdaemon log additionally. The app log is not affected.
+    For debugging, this can be enforced by setting `general_console_print` to `True`.
+
 ## [7.0.1] 2024.08.02
 
 * The Appdaemon integration needed a fix to make `esham` not blocking other apps. This is now fixed

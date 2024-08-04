@@ -240,7 +240,7 @@ class solmate_mqtt():
 		# the 'will_set' is not sent on graceful shutdown by design
 		# we need to wait until the message has been sent, else it will not appear in the broker
 		if self.connect_ok:
-			sol_utils.logging('\rMQTT: Shutting down gracefully')
+			sol_utils.logging('MQTT: Shutting down gracefully')
 			# there can be cases where the connection is already gone.
 			try:
 				publish_result = self.mqttclient.publish(
@@ -267,7 +267,7 @@ class solmate_mqtt():
 				raise KeyboardInterrupt
 			if self.signal_reason == 2:
 				# the program was politely asked to terminate, we log and grant that request.
-				sol_utils.logging('\rMQTT: Terminated on external request')
+				sol_utils.logging('MQTT: Terminated on external request')
 				sys.exit()
 
 	def _on_connect(self, client, userdata, flags, reason_code, properties = None):
