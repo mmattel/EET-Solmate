@@ -1,6 +1,9 @@
 # Download and Update esham Using git
 
 Using git is handy as it takes care for any changes in the source automatically.
+This means, when updating an already cloned repository, you will get all changes, additions and
+deletions automatically. By using tags (defined versions), you can switch back and forth with
+minimal effort.
 
 Depending on your environment, git may already be installed like when using Linux or needs to be installed
 like when using Windows. To install git, follow the guide in
@@ -39,3 +42,13 @@ As rule of thumb, use your home directory as target. **Note** that the directory
   ```
 
 You now have cloned/updated `esham` and switched to the required version.
+
+Note that depending on your operating system, files startig with a dot like `.env-sample` are hidden
+and may not show up automatically. In case you dont see them, dot files are marked hidden and need to
+be explicitely enabled to be visible. You can do that in different ways.
+
+* In Windows this is `Explorer` → `View` → `Hidden items`.
+* In macOS this is `Finder` → `Command + Shift + Dot`.
+* In Linux, it depends if you are:
+  * in the shell: `ls -la`
+  * in a GUI application: `CTRL + H`
