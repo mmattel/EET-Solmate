@@ -9,6 +9,7 @@
    * [Configure Appdaemon](#configure-appdaemon)
    * [Configure esham](#configure-esham)
    * [Appdaemon Startup](#appdaemon-startup)
+   * [Start and Stop the App via HA](#start-and-stop-the-app-via-ha)
 
 ## Prerequisite
 
@@ -142,3 +143,27 @@ On successful startup, you can access the Appdaemon admin console via:
 Then go to section `Logs` and select `solmate_0.log`. 
 
 Finally, check that HA shows in MQTT the new Solmate device.
+
+## Start and Stop the App via HA
+
+If you want to stop and start `esham` via an entity in HA via a toggle switch, you need to manually
+create an entity in HA first. If this is not done, nothing breaks...
+
+With the ability to stop/start the `esham` instance via a HA entity, you can e.g. easily reconfigure
+`esham` without bringing Appdaemon down first.
+
+You can generally disable toggle switch management by setting the `monitor_app` variable in the
+`solmate_appdaemon_0` file to `False`. Consequently you can then skip the following procedure.
+
+Note that entity changes are only considered if Appdaemon is running!
+
+Note that for technical reasons, if you shutdown Appdaemon, the entity defined will **NOT** show the
+`off` but the last state of the app. This is out of my control and maybe fixed by Appdaemon once.
+
+**Setup**: \
+To toggle switch `esham`, you just need to add an integration in HA manually. \
+`Settings → Devices & Services → Helpers → Create Helper`. \
+Select the "Toggle (Schalter)" helper (`input_boolean`) and name it: `solmate_appdaemon_0`.
+The name is important and must match the name of the Python file. Use the respective name if you have
+multiple Solmates. For the icon, select `mdi:script-text-play-outline` or any other icon you like.
+When done, restart Appdaemon. You can now stop and restart `esham` via HA.

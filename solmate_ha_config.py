@@ -14,7 +14,7 @@ def construct_ha_config_message(c_s):
 	# https://www.home-assistant.io/integrations/sensor.mqtt/
 	# https://www.home-assistant.io/integrations/sensor/#device-class
 	# https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes
-	# https://www.home-assistant.io/docs/configuration/customizing-devices/#icon
+	# https://pictogrammers.com/library/mdi/
 
 	names = ['']			# assembled as '/' + virtual_topic + fake_name
 	fake_names = ['']		# the name used in the mqtt message

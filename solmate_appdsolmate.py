@@ -9,19 +9,6 @@ def main(self, env_name_appendix, sn):
 		self.env_name_appendix = env_name_appendix
 		sol_main.main(self)
 
-	except SystemExit:
+	except SystemExit as err:
 		# catch system exit raised by 'sys.exit()'
-		sol_utils.logging('Main: Terminated by the program')
-
-		# also log to appdaemon
-		self.log(sn + ': Got erminated by the program')
-
-# maybe we want to add in the future something like:
-#
-#import multiprocessing
-#for p in multiprocessing.active_children():
-#	if 'solmate_appdaemon' in p.name:
-#		self.log('Found: ' + str(p.name))
-#		p.terminate()
-#		self.log('Terminated: ' + str(p.name))
-
+		sol_utils.logging('Main: Terminated the program')
