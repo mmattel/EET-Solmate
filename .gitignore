@@ -4,6 +4,10 @@ testing/
 my_packages/
 __pycache__/
 
+# exclude all appdeamon starter files but not _0
+solmate_appdaemon_*.py
+!solmate_appdaemon_0.py
+
 # from python virtual env
 bin/
 include/

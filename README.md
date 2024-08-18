@@ -60,6 +60,8 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
 	on demand.
 * **Ressource Efficiency**
   * When running, `esham` has a minimum foodprint and a very low CPU usage.
+* **Managing via HA**
+  * When using Appdaemon, you can start and stop `esham` via a HA entity.
 * **Python Versions**
   * Tested and runs with Python 9 to Python 12
 

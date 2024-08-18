@@ -4,6 +4,15 @@
 
 * Future
 
+## [7.1.0] 2024.08.18
+
+* Appdaemon only:
+  * Added the ability to start and stop `esham` via a HA entity.
+    To do so, you need to create a toggle entity manually in HA first, see the "Install via Appdaemon"
+    guide for more details.
+  * Fixed `.gitignore` to allow multi Solmate installations which would have been deleted on upgrade
+    formerly.
+
 ## [7.0.2] 2024.08.04
 
 * Appdaemon only:
