@@ -4,6 +4,18 @@
 
 * Future
 
+## [7.2.0] 2024.09.25
+
+* Appdaemon only:
+  * Added the `autostart` var which allows to disble starting `esham` automatically on Appdaemon startup.
+	  You can manually start `esham` via the switch in HA if configured and `monitor_app` is set
+		to `True` (default). See the `solmate_appdaemon_0` file for more and important details.
+		If you have multiple solmates running, you must overwrite the code from all `solmate_appdaemon_x`
+		files manually.
+  * Make monitoring the app independent if `esham` has been started or not, but only dependent on if
+		`monitor_app` is set to `True` (default).
+  * Prefix Appdaemon log output with `Appdaemon:` for ease of identification.
+
 ## [7.1.0] 2024.08.18
 
 * Appdaemon only:

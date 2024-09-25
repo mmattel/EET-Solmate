@@ -1,13 +1,20 @@
 import multiprocessing
 
 # global variables for that module
-# note that 'iself' is an artifice to manage appdeamon calls easily, see the callback
-# note that platform must include a trailing dot
+
+# though the AD docs state custom args/kwargs can be used in callbacks, you need to read the
+# docs carefully. they only provide exampes where key=string. using as value an object like self,
+# this currently does not work and imho seems a bug to me.
+# therefore global envvars needs to be defined so the callback can use it
+
+# 'iself' is an artifice to manage appdeamon calls easily, like in entity callback or logs
 iself = None
-solmates_to_monitor = {}
+
+# note that platform MUST include a trailing dot
 platform = 'input_boolean.'
-on = 'on'
-off = 'off'
+
+# list of solmates that are managed
+solmates_to_monitor = {}
 
 def start_monitoring(self, sn, app_name):
 	# called when initialize() is initiated
@@ -30,7 +37,7 @@ def start_monitoring(self, sn, app_name):
 
 	entityID = platform + sn
 
-	if not check_if_entity_exists(entityID):
+	if not check_if_entity_exists(iself, entityID):
 		# check if the entity exists in HA and log a note if not
 		message  = 'To monitor this Solmate, you need to add an integration in HA manually. '
 		message += 'Settings -> Devices & Services -> Helpers -> Create Helper. '
@@ -40,18 +47,20 @@ def start_monitoring(self, sn, app_name):
 		iself.log(message)
 		return
 
-	iself.log('Entity: ' + entityID + ' found in HA, start listening')
+	# set entity state in HA for the app (p is the handle not used here, found is bool)
+	p, found = get_running_state(sn)
+	state = 'on' if found else 'off'
+	set_entity_state(iself, entityID, state)
 
-	# set entity state in HA for the app to be running
-	set_state_for_ha(entityID, on)
+	iself.log('AppDaemon: Entity: ' + entityID + ' found in HA, start listening')
 
 	# listen to entity state changes
-	listen_to_ha(entityID)
+	listen_entity(iself, entityID)
 
-def stop_monitoring(sn):
+def stop_monitoring(iself, sn):
 	# called when terminate() is initiated
-	global iself
 	global platform
+
 	entityID = platform + sn
 
 	# if exists, try to set the switch in HA to off
@@ -59,22 +68,22 @@ def stop_monitoring(sn):
 	# AD disconnects from HA before running terminate()
 	# we keep it, it may get fixed or I find another practicable solution
 	entityID = platform + sn
-	if check_if_entity_exists(entityID):
-		set_state_for_ha(entityID, off)
+	if check_if_entity_exists(iself, entityID):
+		set_entity_state(iself, entityID, 'off')
 
-def check_if_entity_exists(entityID):
+def check_if_entity_exists(iself, entityID):
 	# check if the entity exists in HA
-	global iself
 	return iself.entity_exists(entityID)
 
-def set_state_for_ha(entityID, st):
-	# set the state of the entity in HA to
-	iself.set_state(entityID, state=st)
+def set_entity_state(iself, entityID, st):
+	# set the state of the entity in HA
 
-def listen_to_ha(entityID):
-	# create a listener for the entity
-	# all entities have the same listener
-	global iself
+	iself.set_state(entityID, state = st)
+
+def listen_entity(iself, entityID):
+	# create a listener for the event and return the handle
+	# all entities call the same listener code
+	# when kwargs are working with AD, we can add iself as custom argument
 	iself.listen_state(entity_cb, entityID)
 
 def entity_cb(entity, attribute, old, new, kwargs):
@@ -85,30 +94,28 @@ def entity_cb(entity, attribute, old, new, kwargs):
 	global solmates_to_monitor
 	global platform
 
-	#iself.log(f'{entity} {attribute} {old} {new}')
 	sn = entity.replace(platform, '')
+
 	if 'off' in new:
-		terminate_app(sn)
+		terminate_app(iself, sn)
 	else:
 		# we know that 'solmates_to_monitor' is proper populated and has unique keys
 		# the sn's value defines the app name to start
-		start_app(sn, solmates_to_monitor[sn])
+		start_app(iself, sn, solmates_to_monitor[sn])
 
-def terminate_app(sn):
+def terminate_app(iself, sn):
 	# terminate the app if running
-	global iself
 	p, found = get_running_state(sn)
 	if found:
 		p.terminate()
-		iself.log(sn + ' has been terminated by request via HA')
+		iself.log('AppDaemon: ' + sn + ' has been terminated by request via HA')
 
-def start_app(sn, app_name):
+def start_app(iself, sn, app_name):
 	# start the app if not running
-	global iself
 	p, found = get_running_state(sn)
 	if not found:
 		iself.restart_app(app_name)
-		iself.log(sn + ' has been started by request via HA')
+		iself.log('AppDaemon: ' + sn + ' has been started by request via HA')
 
 def get_running_state(sn):
 	# check if this app is running

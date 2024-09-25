@@ -51,7 +51,9 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
   * You can configure more than one Solmate.
     * For plain Python installations, each Solmate runs in its own directory and is therefore fenced.
 	* For Appdaemon, each Solmate needs it AD config, but they will run using the same code but as
-	  individual thread.
+      individual thread.
+* **Define Autostart**
+  * With Appdaemon, `esham` can be defined not to start automatically on AD startup.
 * **Logging**
   * `esham` provides logging but only for important stuff. Daily business is not logged except configured.
 * **Configurabiliity**
