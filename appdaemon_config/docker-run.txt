@@ -10,3 +10,4 @@
 # the local path must be provided and populated with the config upfront!
 
 docker run --name appdaemon -d --restart=always --network=host -p 5050:5050 -v <local-config-path>:/conf acockburn/appdaemon
+

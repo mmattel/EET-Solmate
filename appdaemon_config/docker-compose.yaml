@@ -35,3 +35,4 @@ services:
     # especially useful in combination with the VSCode server image
     # and for easy updating the python files and the config data
     user: "${LOCAL_USER}:${LOCAL_GROUP}"
+
