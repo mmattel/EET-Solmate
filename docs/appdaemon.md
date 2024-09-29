@@ -16,7 +16,7 @@
 As prerequisite to make `esham` an Appdaemon app, Appdeamon must be present. Depending on the [HA
 installation](https://www.home-assistant.io/installation) this can either be done by loading Appdaemon
 as HA AddOn (like when using a HA appliance or a full HAOS install) or by running Appdaemon as container
-somewhere else. Functionality wise and mostly also from the setup, there is no difference. 
+somewhere else connected to HA. Functionality wise and mostly also from the setup, there is no difference. 
 
 If you already have Appdaemon running, you can use this installation.
 
@@ -27,7 +27,7 @@ process. Have a look when referenced in the text. When installing as container, 
 ## Process Overview
 
 1. Download the `esham` code
-2. Install Appdeamon or if already present, stop it
+2. Install Appdeamon
 3. Configure Appdaemon apps
 5. Copy files to Appdaemon
 6. Configure `esham`
@@ -36,7 +36,8 @@ process. Have a look when referenced in the text. When installing as container, 
 ## Download the esham Code
 
 Most easiest, use git for getting `esham`. For details see:
-[Download and Update esham Using git](download-with-git.md). The download will be saved on your local device.
+[Download and Update esham Using git](download-with-git.md).
+The download will be saved on your local device is not the final target!
 
 ## Appdeamon Installation
 
@@ -49,20 +50,18 @@ If it is already installed, check the configuration list item below to add requi
 1. Go to `Settings` → `Add-ons` → `Add-on Store`\
    Search for `Appdaemon` and install it.
 2. In the `Info` tab, set `Watchdog` to `true`
-3. In the `Configuration` tab, in `Python packages`, add all packages that are uncommented in
-   `esham's` `requirements.txt` file and save the setting.
-4. Start Appdaemon and when it has started, stop it again.\
+3. Start Appdaemon and when it has started, stop it again.\
    This will make Appdaemon create the required directory structure.
 
 There are multiple ways to upload necessary files to HAOS/Appdaemon. The most easiest way is to
 use the `SAMBA` addon:
 
-5. Go to `Settings` → `Add-ons` → `Add-on Store`\
+4. Go to `Settings` → `Add-ons` → `Add-on Store`\
    Search for `SAMBA` and install it. Dont forget to add a user/pwd in the `Configuration` tab.
-6. When `samba` has started, connect from you local machine to HA using the defined user and
+5. When `samba` has started, connect from you local machine to HA using the defined user and
    password. The ways how to connect differs per OS used. Search in Google for how to do that.
 
-Change into the mounted Appdaemon config directory: 
+Change into the local mounted Appdaemon config directory: 
 
 7. First, change into directory `addon_configs` → `a0d7b954_appdaemon`\
   Note that the name may differ but it contains `_appdaemon`.
@@ -78,7 +77,7 @@ Change into the mounted Appdaemon config directory:
 3. Start Appdaemon and when it has started, stop it again.\
    This will make Appdaemon create the required directory structure.
 
-Change into the local Appdaemon config directory: 
+Change into the local mounted Appdaemon config directory: 
 
 4. First, change into the _local_ directory you defined as volume for the config `<local config path>`.
 5. Note that compared to the addon installation, the container internal folder is
@@ -93,12 +92,37 @@ Create a HA `Long-lived access token` to to authenticate Appdeamon in HA:
 
 ## Configure Appdaemon
 
-To configure Appdaemon, check that is not running!
+### Install packages required by `esham`
 
-From the respective local folder, use the `esham` Appdaemon example files as base:
+* **For Addon Installations Only**
+   1. In AD `Configuration` tab, in `Python packages`, add all packages that are **not** commented in
+   `esham's` `requirements.txt` file and save the setting.
+	2. Restart Appdaemon, loading of the required modules can be seen in the Appdaemon logs.
+
+* **For Container Installations Only**
+   1. Nothing special needs to be done, because Appdaemon recurively checks for existing `requirements.txt`
+	files and installs the modules listed accordingly, also see
+	[Runtime dependencies](https://appdaemon.readthedocs.io/en/latest/DOCKER_TUTORIAL.html#runtime-dependencies)
+	and the setup steps below.
+
+### Prepare AppDaemon
+
+To prepare Appdaemon, check that is not running! When running Appdaemon as HA AddOn, HA must run.
+
+For further reference, use the `esham` Appdaemon example files from the git download as base which can be
+found in the `appdaemon_config` directory:
+
+Open the mounted folder as decribed in the installation section above.
+
+If you are using multiple Solmates, the following needs to be done per Solmate. Note that all Solmates
+share the same Python code but each Solmate has it's own Appdaemon setting, configuration and startup file.
+
+* **For Addon Installations Only**
+   1. No need to adapt `secrets.yaml` if exists
+   2. In `appdaemon.yaml` DO NOT change the `appdaemon.plugins.HASS` section!
 
 * **For Container Installations Only**\
-  Only if this is a new installation of Appdaemon
+  Only if this is a new installation of Appdaemon, use the examples as reference
    1. Copy the `secrets.yaml` to the same location of `appdaemon.yaml`
    2. Replace in `secrets.yaml` → `<your-ha-token-here>` with the `Long-lived access token` created before.
    3. Adapt `appdaemon.yaml` by copying the sub keys `ha_url` and `token` from the example into
@@ -107,29 +131,26 @@ From the respective local folder, use the `esham` Appdaemon example files as bas
    5. If not exists, add the config in `hadashboard`. This is necessary to access Appdaemon's admin console
       to e.g. monitor logs.
 
-* **For Addon Installations Only**
-   1. No need to adapt `secrets.yaml` if exists
-   3. In `appdaemon.yaml` DO NOT change the `appdaemon.plugins.HASS` section!
-
 **For Both Installation Types**
-1. From the respective local folder open `appdaemon.yaml`.
+1. From the mounted folder, open `appdaemon.yaml`.
 2. Add at the bottom from the example the `logs:` section.\
-   Depending if `Addon` or `Container`, comment the respective `filename:` key.
+   Depending if you are using `Addon` or `Container`, comment the respective `filename:` key.
    They are mutual exclusive!
-3. Change into the `apps` folder
+3. Change into the `apps` folder.
 4. Add to the existing `apps.yaml` file the content from the example. This is the file that defines
-   which prograns will be started.
-5. Create a `solmate` folder and change into
-6. Copy from your cloned `esham` folder all `solmate*.py` files.
-7. Copy the `.env-sample`
-8. For container installation only, copy `requirements.txt`.
+   which programs will be started.
+5. Create a `solmate` folder and change into.
+6. Copy from your cloned `esham` folder:
+   - all `solmate*.py` files.
+	- the `.env-sample`.
+   - IMPORTANT: For container installation only, copy `requirements.txt`.
 
 ## Configure esham
 
 In any case, read the [configuration](./configuration.md) guide!
 
-If you already have an `.env` file, you can use that one but it needs renaming!\
-Else follow the guide linked.
+If you already have an `.env` file from other installation options, you can use that one but it needs
+renaming! Else follow the guide linked.
 
 ## Appdaemon Startup
 
@@ -146,21 +167,24 @@ Finally, check that HA shows in MQTT the new Solmate device.
 
 ## Start and Stop the App via HA
 
-If you want to stop and start `esham` via an entity in HA via a toggle switch, you need to manually
-create an entity in HA first. If this is not done, nothing breaks...
+If you want to stop and start `esham` via a toggle switch entity in HA, you need to manually
+create an entity in HA first, for details see below. If this is not done, nothing breaks...
 
 With the ability to stop/start the `esham` instance via a HA entity, you can e.g. easily reconfigure
 `esham` without bringing Appdaemon down first.
 
+You can disable automatically starting the `esham` instance by adapting the `autostart` variable in the
+`solmate_appdaemon_0` file to `False`.
+
 You can generally disable toggle switch management by setting the `monitor_app` variable in the
-`solmate_appdaemon_0` file to `False`. Consequently you can then skip the following procedure.
+`solmate_appdaemon_0` file to `False`. Consequently you can skip the following procedure.
 
 Note that entity changes are only considered if Appdaemon is running!
 
 Note that for technical reasons, if you shutdown Appdaemon, the entity defined will **NOT** show the
 `off` but the last state of the app. This is out of my control and maybe fixed by Appdaemon once.
 
-**Setup**: \
+**Toggle Switch Setup**: \
 To toggle switch `esham`, you just need to add an integration in HA manually. \
 `Settings → Devices & Services → Helpers → Create Helper`. \
 Select the "Toggle (Schalter)" helper (`input_boolean`) and name it: `solmate_appdaemon_0`.

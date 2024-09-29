@@ -75,7 +75,7 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
 * As plain Python program that runs on independent hardware
 * As app in Appdaemon:
   * Either integrated in HA (!!) like when using a HA Appliance.
-  * Or when installing Appdaemon as seperate container.
+  * Or when installing Appdaemon as separate container.
   * See the HA [Installation](https://www.home-assistant.io/installation) options for more details.
 
 * You need per Solmate installed, one instance of the script individually configured, Note that you
