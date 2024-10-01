@@ -4,6 +4,11 @@
 
 * Future
 
+## [7.2.1] 2024.10.01
+
+* NO CODE CHANGES\
+  Fixed the version number of `esham` which I forgot to update in the last release.  
+
 ## [7.2.0] 2024.09.25
 
 * Appdaemon only:
