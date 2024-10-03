@@ -133,14 +133,25 @@ share the same Python code but each Solmate has it's own Appdaemon setting, conf
 
 **For Both Installation Types**
 1. From the mounted folder, open `appdaemon.yaml`.
-2. Add at the bottom from the example the `logs:` section.\
-   Depending if you are using `Addon` or `Container`, comment the respective `filename:` key.
+2. Optional:\
+   In the `appdaemon:` section, add if not present the key/value pairs:
+   - `production_mode: True`.\
+   This entry can silence AD container log entries like
+   `Excessive time spent in utility loop`.
+   - `missing_app_warnings: 0`\
+   This entry silences found files warnings where there is no related app defined.\
+
+   See the
+   [Appdaemon documentation](https://appdaemon.readthedocs.io/en/latest/CONFIGURE.html#appdaemon) for more
+   details on the keys.
+3. Add at the bottom from the example the `logs:` section.\
+   Depending if you are using `Addon` or `Container`, comment/delete the respective `filename:` key.
    They are mutual exclusive!
-3. Change into the `apps` folder.
-4. Add to the existing `apps.yaml` file the content from the example. This is the file that defines
+4. Change into the `apps` folder.
+5. Add to the existing `apps.yaml` file the content from the example. This is the file that defines
    which programs will be started.
-5. Create a `solmate` folder and change into.
-6. Copy from your cloned `esham` folder:
+6. Create a `solmate` folder and change into.
+7. Copy from your cloned `esham` folder:
    - all `solmate*.py` files.
 	- the `.env-sample`.
    - IMPORTANT: For container installation only, copy `requirements.txt`.
