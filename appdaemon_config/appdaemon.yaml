@@ -3,6 +3,8 @@ appdaemon:
   longitude: 0
   elevation: 30
   time_zone: Europe/Vienna
+  production_mode: True
+  missing_app_warnings: 0
   plugins:
     HASS:
       type: hass

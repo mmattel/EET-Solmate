@@ -8,7 +8,7 @@ import solmate_connect as sol_connect
 import solmate_env as sol_env
 import solmate_utils as sol_utils
 
-version = '7.2.1'
+version = '7.2.2'
 
 def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint):
 	# send request but only when triggered by the scheduler

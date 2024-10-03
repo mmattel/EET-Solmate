@@ -4,6 +4,13 @@
 
 * Future
 
+## [7.2.2] 2024.10.03
+
+* Doc changes only for the Appdaemon configuration documentation:
+  - Add `production_mode: True` to avoid container log entries like
+  `Excessive time spent in utility loop`.
+  - Add `missing_app_warnings: 0` to silence found files warnings where there is no related app defined.
+
 ## [7.2.1] 2024.10.01
 
 * NO CODE CHANGES\
