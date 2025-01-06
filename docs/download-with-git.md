@@ -22,6 +22,7 @@ As rule of thumb, use your home directory as target. **Note** that the directory
   * **Commands if you have not cloned esham before**:  
     ```
     git clone --depth 1 https://github.com/mmattel/eet-solmate.git solmate
+    cd solmate
     git fetch --all --tags
     ```
 * **Commands for updates**
