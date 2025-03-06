@@ -150,4 +150,4 @@ See the linked [description](./docs/additional-ha-info.md) documentation for mor
 
 ## Known Routes
 
-Intedned as optional info, see the linked [description](./docs/known-routes.md) for more details.
+Intended as optional info, see the linked [description](./docs/known-routes.md) for more details.
