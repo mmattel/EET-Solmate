@@ -331,6 +331,20 @@ class solmate_mqtt():
 
 		# do not process before a first query run and publishing the results to mqtt has run
 		if not self.first_query_has_run:
+			sol_utils.logging('MQTT: Write back from MQTT before first full query completed, skipping.')
+			return
+
+		# there can be the _very_ rare case that both:
+		# 'remember_get_boost_response' and 'remember_get_injection_response'
+		# can be empty though 'first_query_has_run' is true.
+		# this would lead to a hard error: TypeError: 'NoneType' object is not subscriptable
+		# when trying to access an element inside the variable.
+		# for both cases, do not accept any mqtt backwrites until initialisation is complete
+		if remember_get_boost_response == None:
+			sol_utils.logging('MQTT: Boost response from Solmate not fully initialized, skipping write back.')
+			return
+		if remember_get_injection_response == None:
+			sol_utils.logging('MQTT: Injection response from Solmate not fully initialized, skipping write back.')
 			return
 
 		# triggered on published messages when subscribed
