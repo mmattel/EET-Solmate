@@ -4,6 +4,12 @@
 
 * Future
 
+## [7.2.3] 2025.03.21
+
+* Fixing of two edge cases that could crash esham:
+  - Backwrite from HA to MQTT before the first initialistation has been completed.
+  - The Solmate has not replied with a proper response for boost or injection during the regular query and an MQTT backwrite tries to access these uninitialized variables.
+
 ## [7.2.2] 2024.10.03
 
 * Doc changes only for the Appdaemon configuration documentation:
