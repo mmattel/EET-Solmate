@@ -3,6 +3,7 @@ import os
 import queue
 import sys
 import syslog
+import socket
 import solmate_importmanager as sol_im
 from datetime import datetime
 from importlib import metadata
@@ -206,3 +207,40 @@ def restart_program(counter=0, mqtt=False):
 
 	sys.stdout.flush()
 	os.execv(sys.executable, ['python'] + sys.argv)
+
+def isOpen(host, port):
+	# check if host:port is reachable
+	try:
+		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		#2 second timeout
+		sock.settimeout(2)
+		result = sock.connect_ex((host,int(port)))
+		if result == 0:
+			# port is open
+			return True
+		else:
+			# port is closed
+			return False
+	except Exception as err:
+		logging('Main: Try to do a socket check failed: ' + str(err))
+		return False
+
+def strip_host_port(url):
+# return the pure hostname and port if exists from the variable given
+# wss://sol.eet.energy:9124/ --> sol.eet.energy
+	try:
+		#             1.2.3.4/
+		#       wss://sun2plug:9123/
+		# x:          sun2plug:9123/
+		# strip_host: sun2plug
+		# strip_port: 9123
+		# set a default port with value 0 if none is found
+		port = 0
+		x = url.partition('//')[2].partition('/')[0] or url
+		strip_host = x.partition(":")[0]
+		strip_port = x.partition(":")[2].partition('/')[0] or port
+		if strip_host:
+			return strip_host,strip_port
+		return url,port
+	except Exception:
+		return url,port

@@ -8,7 +8,7 @@ import solmate_connect as sol_connect
 import solmate_env as sol_env
 import solmate_utils as sol_utils
 
-version = '7.2.3'
+version = '7.2.4'
 
 def query_once_a_day(smws_conn, route, data, mqtt_conn, print_response, endpoint):
 	# send request but only when triggered by the scheduler
@@ -214,9 +214,13 @@ def main(self = None):
 					if smws_conn:
 						smws_conn = None
 					eet_connected = False
-					# the scheduler needs to be reset because the conenction object is no longer valid
+					# the scheduler needs to be reset because the connection object is no longer valid
 					schedule.clear()
 					sol_utils.logging('Main: Websocket: Connection error' + print_string)
+					# check if the solmate is reachable
+					host,port = sol_utils.strip_host_port(sol_utils.merged_config['eet_server_uri'])
+					if not sol_utils.isOpen(host, port):
+						sol_utils.logging('Main: No reply from Solmate: ' + str(host) + ':' + str(port))
 					# do not process any queue in the timer as long we reestablish the connection
 					# set optional argument false, defaults to true
 					# note that mqtt may be running but websocket is disconnected
@@ -235,6 +239,11 @@ def main(self = None):
 						mqtt_conn = None
 					mqtt_connected = False
 					sol_utils.logging('Main: MQTT: Connection error' + print_string)
+					# check if the mqtt server is reachable at all
+					host = sol_utils.strip_host_port(sol_utils.merged_config['mqtt_server'])
+					port = sol_utils.merged_config['mqtt_port']
+					if not sol_utils.isOpen(host, port):
+						sol_utils.logging('Main: No reply from MQTT server: ' + str(host) + ':' + str(port))
 					sol_utils.timer_wait(timer_to_use)
 
 			else:
