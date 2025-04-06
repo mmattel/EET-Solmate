@@ -4,6 +4,12 @@
 
 * Future
 
+## [7.2.4] 2025.04.06
+
+* Added a logging when either the Solmate or the MQTT server cant be reached anymore. This can happen for example on network outages, when the
+  Solmate is offline or is disconnected due to a defect, or the MQTT server is offline. This logging helps to makes it clear where an issue is
+  origined, either on the `esham` side or required hardware is not available.
+
 ## [7.2.3] 2025.03.21
 
 * Fixing of two edge cases that could crash esham:
