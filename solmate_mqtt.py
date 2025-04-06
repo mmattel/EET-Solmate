@@ -84,7 +84,7 @@ class solmate_mqtt():
 		#	eet/solmate/sensor
 		#	homeassistant/solmate/sensor/sensor_name/config
 		#	eet/solmate/sensor/sensor_name/availability
-	
+
 		self.mqtt_button_topic = self.mqtt_prefix + '/button/' + self.mqtt_topic
 		self.mqtt_number_topic = self.mqtt_prefix + '/number/' + self.mqtt_topic
 		self.mqtt_sensor_topic = self.mqtt_prefix + '/sensor/' + self.mqtt_topic
@@ -323,6 +323,11 @@ class solmate_mqtt():
 				+ ', packet: '
 				+ str(PacketTypes.Names[reason_code.packetType])
 				)
+			# check if the mqtt server is reachable at all
+			host,port = sol_utils.strip_host_port(sol_utils.merged_config['mqtt_server'])
+			port = sol_utils.merged_config['mqtt_port']
+			if not sol_utils.isOpen(host, port):
+				sol_utils.logging('Main: No reply from MQTT server: ' + str(host) + ':' + str(port))
 
 	def _on_publish(self, client, userdata, message, reason_codes, properties = None):
 		print(f'MQTT messages published: {message}')
