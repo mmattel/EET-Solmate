@@ -4,6 +4,10 @@
 
 * Future
 
+## [7.2.5] 2025.04.10
+
+* Fixed a bug introduced with 7.2.4. Two variables were not using the class instance identifyer.
+
 ## [7.2.4] 2025.04.06
 
 * Added a logging when either the Solmate or the MQTT server cant be reached anymore. This can happen for example on network outages, when the

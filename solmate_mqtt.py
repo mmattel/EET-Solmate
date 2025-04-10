@@ -345,10 +345,10 @@ class solmate_mqtt():
 		# this would lead to a hard error: TypeError: 'NoneType' object is not subscriptable
 		# when trying to access an element inside the variable.
 		# for both cases, do not accept any mqtt backwrites until initialisation is complete
-		if remember_get_boost_response == None:
+		if self.remember_get_boost_response == None:
 			sol_utils.logging('MQTT: Boost response from Solmate not fully initialized, skipping write back.')
 			return
-		if remember_get_injection_response == None:
+		if self.remember_get_injection_response == None:
 			sol_utils.logging('MQTT: Injection response from Solmate not fully initialized, skipping write back.')
 			return
 
