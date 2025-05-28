@@ -4,6 +4,11 @@
 
 * Future
 
+## [7.3.0] 2025.05.28
+
+* Fixes a circular dependency between utils and importmanager.\
+Note that this version is required if you want to use Appdaemon 4.5.x
+
 ## [7.2.5] 2025.04.10
 
 * Fixed a bug introduced with 7.2.4. Two variables were not using the class instance identifyer.
