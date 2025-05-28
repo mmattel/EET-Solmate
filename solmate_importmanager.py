@@ -1,7 +1,7 @@
 import os
 import sys
 import subprocess
-import solmate_utils as sol_utils
+from solmate_utils import logging as sol_utils_logging
 from importlib import metadata
 from contextlib import contextmanager
 
@@ -32,11 +32,11 @@ def install_version(package_name, version, path):
 			os.makedirs(target_path)
 		completedProcess = subprocess.run(cmd, capture_output=True, check=True)
 		output = completedProcess.stdout
-		sol_utils.logging('Importmanager: ' + output.decode().replace('\n',', '))
+		sol_utils_logging('Importmanager: ' + output.decode().replace('\n',', '))
 	except subprocess.CalledProcessError as err:
-		sol_utils.logging('Importmanager: Installation failed: ' + str(err))
+		sol_utils_logging('Importmanager: Installation failed: ' + str(err))
 	except Exception as err:
-		sol_utils.logging('Importmanager: An error occurred during installation: ' + str(err))
+		sol_utils_logging('Importmanager: An error occurred during installation: ' + str(err))
 
 @contextmanager
 def import_helper(package_name, path):
@@ -99,7 +99,7 @@ def get_available_version(package, required_version = ''):
 			return version_list[0]
 	except Exception as err:
 		raise
-		sol_utils.logging('Importmanager: ' + str(err))
+		sol_utils_logging('Importmanager: ' + str(err))
 		sys.exit()
 
 def get_installed_version(package, required_version = ''):
@@ -141,3 +141,4 @@ def get_installed_version(package, required_version = ''):
 def _versiontuple(v):
 	# create a comparable tuble from the version string
 	return tuple(map(int, (v.split("."))))
+

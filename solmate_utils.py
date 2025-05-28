@@ -4,7 +4,7 @@ import queue
 import sys
 import syslog
 import socket
-import solmate_importmanager as sol_im
+#import solmate_importmanager as sol_im
 from datetime import datetime
 from importlib import metadata
 
@@ -115,6 +115,8 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 	# in parallel not conflicting
 	# note that install_name ('paho_mqtt') and query_name (query_name) may not be equal
 
+	# we need to import here this way, else we get a circular dependency
+	import solmate_importmanager as sol_im
 	response, version, message = sol_im.get_installed_version(query_name, pattern)
 
 	if response:
