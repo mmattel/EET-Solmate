@@ -102,10 +102,11 @@ Before installing `esham`, you must have:
   Use this method when you want to run `esham` fully independent on a host that has Python installed.
   See the [Plain Install Option](./docs/plain-install.md) documentation for more details.
 
-* **Install via Appdeamon**\
+* **Install via Appdaemon**\
   Dependent on the way how [HA is installed](https://www.home-assistant.io/installation), you can either
-  directly integrate `esham` as app in the appdeamon addon or use a dedicated appdeamon container running
-  on a separate host. See the [Appdaemon](./docs/appdaemon.md) documentation for more details.
+  directly integrate `esham` as app in the appdaemon addon or use a dedicated appdaemon container running
+  on a separate host. See the [Appdaemon](./docs/appdaemon.md) documentation for more details.\
+  Note that if you want to use Appdaemon version 4.5.x, the minimum required version for `esham` is v7.3.0!
 
 ## Configuration
 
