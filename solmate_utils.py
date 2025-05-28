@@ -4,7 +4,6 @@ import queue
 import sys
 import syslog
 import socket
-#import solmate_importmanager as sol_im
 from datetime import datetime
 from importlib import metadata
 
