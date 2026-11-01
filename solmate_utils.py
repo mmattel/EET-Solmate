@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import queue
 import sys
@@ -157,7 +158,7 @@ def dynamic_import(pattern, path, query_name, install_name, imports, name_object
 				sol_im.install_version(install_name, matching_version, pth)
 
 			except Exception as err:
-				logging('MQTT: An error occured installing \'' + paho-mqtt + '\' ' + str(version) + ' exiting.')
+				logging('MQTT: An error occured installing \'' + query_name + '\' ' + str(matching_version) + ' exiting.')
 				logging('MQTT: ' + str(err))
 				sys.exit()
 
@@ -201,10 +202,10 @@ def restart_program(counter=0, mqtt=False):
 
 	if counter > 0:
 		# log restart reason if _consescutive_ websocket errors occured
-		logging('Restarting program due to ' + str(counter) + ' consecutive unprocessable WS conditions.', merged_config)
+		logging('Restarting program due to ' + str(counter) + ' consecutive unprocessable WS conditions.')
 	else:
 		# log that we are restarting without describing the cause
-		logging('Restarting program.', merged_config)
+		logging('Restarting program.')
 
 	sys.stdout.flush()
 	os.execv(sys.executable, ['python'] + sys.argv)

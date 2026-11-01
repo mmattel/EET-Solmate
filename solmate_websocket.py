@@ -6,7 +6,15 @@ import os
 import sys
 import syslog
 import time
-import websockets.client
+import websockets.exceptions
+# use the new asyncio implementation of websockets (available since 13.0).
+# the legacy implementation (websockets.client / websockets.legacy) is deprecated
+# since 14.0 and will be removed in a future release.
+# fall back to the legacy one only for old installations with websockets < 13.0
+try:
+	from websockets.asyncio.client import connect as ws_connect
+except ImportError:
+	from websockets.client import connect as ws_connect
 import solmate_utils as sol_utils
 
 class connect_to_solmate:
@@ -40,11 +48,6 @@ class connect_to_solmate:
 			sol_utils.logging('Websocket: Error: ' + str(self.server_uri))
 			raise Exception('websocket', 'timer_offline')
 
-	def _close_websocket(self):
-		# needed for example when redirected
-		if self.websocket is not None:
-			self.websocket.close()
-
 	async def _create_socket(self):
 		# create a websocket and connect it to the endpoint.
 		try:
@@ -52,7 +55,7 @@ class connect_to_solmate:
 			if self.websocket is not None:
 				await self.websocket.close()
 
-			self.websocket = await websockets.client.connect(self.server_uri)
+			self.websocket = await ws_connect(self.server_uri)
 			# you may want to add additional connect parameters like 'ping_interval=xxx' and 'ping_timeout=xxx'
 			# see the readme.md file for a possible reason
 			sol_utils.logging('Websocket: Connected to: ' + self.server_uri)

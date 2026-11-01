@@ -46,7 +46,10 @@ class Solmate_0(hass.Hass):
 			# note that after starting, appdaemon continues normal processing
 			# other apps independent of this started program
 			if autostart:
-				multiprocessing.Process(
+				# explicitly use the 'fork' start method. python 3.14 changed the default on linux
+				# to 'forkserver', which needs to pickle all process arguments. the appdaemon app
+				# object (self) passed to the process cannot be pickled and the start would fail.
+				multiprocessing.get_context('fork').Process(
 						target=sol_appd_solmate.main,
 						name=sn,
 						args=(self, env_name_appendix, sn)
