@@ -84,8 +84,11 @@ def get_available_version(package, required_version = ''):
 		matched_line = [line for line in output.split('\n') if search_string in line]
 		version_list = ''.join(map(str, matched_line)).removeprefix(search_string).split(',')
 		version_list = [item.strip() for item in version_list]
+		# remove entries that are not purely numeric like pre-releases (they cant be compared)
+		version_list = [item for item in version_list if _is_numeric_version(item)]
 		# we now have a sorted descending list, higher first
-		version_list.sort(reverse = True)
+		# sort numerically, a string sort would rank e.g. 2.9 higher than 2.10
+		version_list.sort(key = _versiontuple, reverse = True)
 
 		if len(required_version) > 0:
 			# get the first matching version
@@ -98,7 +101,7 @@ def get_available_version(package, required_version = ''):
 			# return the first in the list (= highest from the query)
 			return version_list[0]
 	except Exception as err:
-		raise
+		# log the reason and exit, without an available version we cant continue
 		sol_utils_logging('Importmanager: ' + str(err))
 		sys.exit()
 
@@ -141,4 +144,12 @@ def get_installed_version(package, required_version = ''):
 def _versiontuple(v):
 	# create a comparable tuble from the version string
 	return tuple(map(int, (v.split("."))))
+
+def _is_numeric_version(v):
+	# check if a version string only consists of numbers separated by dots
+	try:
+		_versiontuple(v)
+		return True
+	except ValueError:
+		return False
 

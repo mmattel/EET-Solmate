@@ -4,6 +4,31 @@
 
 * Future
 
+## [7.4.0] 2026.11.01
+
+* Prepares `esham` for upcoming Python and library releases. No configuration changes are required.
+  - **websockets:** `esham` now uses the new asyncio implementation of the `websockets` library
+  (`websockets.asyncio.client`, available since websockets 13.0). The formerly used legacy
+  implementation (`websockets.client`) is deprecated since websockets 14.0 and will be removed in a
+  future release.\
+  Why this is important: when using the Appdaemon container, the `websockets` library is part of the
+  image. Once a new image ships a websockets release without the legacy implementation, the connection
+  to the Solmate would fail. For old installations with websockets < 13.0, `esham` falls back to the
+  legacy implementation.
+  - **Python 3.14 / Appdaemon:** the `esham` process is now started explicitly with the `fork` start
+  method.\
+  Why this is important: Python 3.14 changed the default start method on Linux from `fork` to
+  `forkserver`. That method needs to pickle all arguments passed to the new process, which is not
+  possible for the Appdaemon app object. With an Appdaemon image based on Python 3.14, `esham` would
+  not start anymore. Appdaemon already supports Python 3.14.
+* Fixed some small bugs in rarely used code paths:
+  - Printing the response (`general_print_response=True`) and printing the API info
+  (`general_api_info=True`) failed because of a missing import.
+  - A failed special install of `paho-mqtt` crashed instead of logging the reason.
+  - The available `paho-mqtt` versions are now sorted numerically (a text sort ranks e.g. 2.9 higher than 2.10),
+  pre-release versions are ignored, and an error while querying the versions is logged before exiting.
+  - The unused `restart_program` function had a wrong logging call.
+
 ## [7.3.0] 2025.05.28
 
 * Fixes a circular dependency between utils and importmanager.\

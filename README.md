@@ -65,7 +65,7 @@ calculated in HA (like when using [Node-RED](https://nodered.org).
 * **Managing via HA**
   * When using Appdaemon, you can start and stop `esham` via a HA entity.
 * **Python Versions**
-  * Tested and runs with Python 9 to Python 12
+  * Tested and runs with Python 3.9 to Python 3.12, prepared for Python 3.14 (see the changelog for v7.4.0)
 
 
 **Installation Options**
